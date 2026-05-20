@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import Company, Eval, Job
+from quant_job_tracker.models import App, Company, Eval, Job
 
 
 def test_init_db_and_insert_job(tmp_path: Path) -> None:
@@ -73,3 +73,41 @@ def test_eval_requires_existing_job(tmp_path: Path) -> None:
         )
         with pytest.raises(IntegrityError):
             session.commit()
+
+
+def test_app_tracking_fields_persist_as_strings(tmp_path: Path) -> None:
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+
+    with create_session(db_path) as session:
+        company = Company(name="Test", group="quant", career_url="https://example.com", active=True)
+        session.add(company)
+        session.flush()
+        job = Job(
+            company_id=company.id,
+            company="Test",
+            title="Quant Researcher",
+            loc="New York",
+            url="app-test",
+            source="s",
+            jd="jd",
+            jd_hash="h",
+            status="new",
+        )
+        session.add(job)
+        session.flush()
+        session.add(
+            App(
+                job_id=job.id,
+                deadline="2026-06-01",
+                priority="high",
+                applied_at="2026-05-20",
+            )
+        )
+        session.commit()
+
+    with create_session(db_path) as session:
+        saved = session.query(App).one()
+        assert saved.deadline == "2026-06-01"
+        assert saved.priority == "high"
+        assert saved.applied_at == "2026-05-20"

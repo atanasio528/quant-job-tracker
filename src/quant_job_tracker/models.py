@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -79,9 +79,9 @@ class App(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), unique=True, index=True)
     app_status: Mapped[str] = mapped_column(default="not_started", index=True)
-    deadline: Mapped[datetime | None] = mapped_column(default=None)
-    priority: Mapped[int | None] = mapped_column(default=None)
-    applied_at: Mapped[datetime | None] = mapped_column(default=None)
+    deadline: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    priority: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    applied_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     contact: Mapped[str | None] = mapped_column(default=None)
     note: Mapped[str | None] = mapped_column(default=None)
     updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
