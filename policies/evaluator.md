@@ -38,3 +38,56 @@ Use these source links and trusted URL patterns when deciding whether a crawled 
 - Morgan Stanley: https://www.morganstanley.com/careers/career-opportunities-search | trusted patterns: `/careers/career-opportunities-search`. Official Morgan Stanley career opportunities search page.
 - Citi: https://jobs.citi.com/ | trusted patterns: `jobs.citi.com`. Official Citi jobs portal.
 - Bank of America: https://careers.bankofamerica.com/ | trusted patterns: `careers.bankofamerica.com`. Official Bank of America careers portal.
+- Balyasny Asset Management: https://www.bamfunds.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Qube Research & Technologies: https://www.qube-rt.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- IMC Trading: https://www.imc.com/us/careers/jobs/ | trusted patterns: `/us/careers/jobs`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- XTX Markets: https://www.xtxmarkets.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Virtu Financial: https://www.virtu.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Flow Traders: https://www.flowtraders.com/careers/jobs | trusted patterns: `/careers/jobs`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Old Mission: https://www.oldmissioncapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Belvedere Trading: https://www.belvederetrading.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Maven Securities: https://www.mavensecurities.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- TransMarket Group: https://www.transmarketgroup.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Quantlab: https://www.quantlab.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Wolverine Trading: https://www.wolve.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Headlands Technologies: https://www.headlandstech.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Radix Trading: https://radixtrading.co/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Mako Trading: https://www.mako.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Da Vinci Derivatives: https://davinciderivatives.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Eclipse Trading: https://www.eclipsetrading.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Peak6: https://www.peak6.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- WH Trading: https://www.whtrading.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- All Options: https://alloptions.nl/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- AQR Capital Management: https://www.aqr.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Man Group: https://www.man.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Winton: https://www.winton.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- G-Research: https://www.gresearch.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Schonfeld: https://www.schonfeld.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Verition Fund Management: https://www.verition.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- ExodusPoint: https://www.exoduspoint.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- PDT Partners: https://www.pdtpartners.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- The Voleon Group: https://www.voleon.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Trexquant: https://www.trexquant.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- AlphaGrep: https://www.alpha-grep.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- CFM: https://www.cfm.com/join-us/ | trusted patterns: `/join-us`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Systematica Investments: https://www.systematica.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Aspect Capital: https://www.aspectcapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Graham Capital Management: https://www.grahamcapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Brevan Howard: https://www.brevanhoward.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Marshall Wace: https://www.mwam.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Rokos Capital Management: https://www.rokoscapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Tudor Investment Corporation: https://www.tudor.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Aquatic Capital Management: https://aquatic.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Voloridge: https://www.voloridge.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Arrowstreet Capital: https://www.arrowstreetcapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Kepos Capital: https://www.keposcapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Walleye Capital: https://www.walleyecapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Paloma Partners: https://www.paloma.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Laurion Capital: https://www.laurioncapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Eisler Capital: https://www.eislercapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- LMR Partners: https://www.lmrpartners.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Quadrature: https://quadrature.ai/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Teza Technologies: https://www.teza.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- BlackRock: https://careers.blackrock.com/ | trusted patterns: `careers.blackrock.com`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Acadian Asset Management: https://www.acadian-asset.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Dimensional Fund Advisors: https://www.dimensional.com/us-en/careers | trusted patterns: `/us-en/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.

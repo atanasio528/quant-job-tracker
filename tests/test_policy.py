@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from quant_job_tracker.crawler.job_sources import JOB_SOURCE_SEEDS
+from quant_job_tracker.crawler.seeds import SEEDS
 from quant_job_tracker.policy import load_policy_bundle
 
 
@@ -37,3 +39,12 @@ def test_real_evaluator_policy_includes_job_source_links() -> None:
     assert "https://careers.point72.com/" in bundle
     assert "job-boards.greenhouse.io/fiveringsllc/jobs/" in bundle
     assert "page_noise" in bundle
+
+
+def test_real_evaluator_policy_lists_all_target_company_sources() -> None:
+    bundle = load_policy_bundle(Path("policies"), "evaluator")
+    source_by_company = {source.company: source for source in JOB_SOURCE_SEEDS}
+
+    for seed in SEEDS:
+        assert seed.name in bundle
+        assert source_by_company[seed.name].source_url in bundle
