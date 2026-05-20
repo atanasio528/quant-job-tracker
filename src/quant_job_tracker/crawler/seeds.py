@@ -25,7 +25,7 @@ SEEDS: list[CompanySeed] = [
         "generic",
     ),
     CompanySeed("D. E. Shaw", "quant_hedge_fund", "https://www.deshaw.com/careers", "generic"),
-    CompanySeed("Two Sigma", "quant_hedge_fund", "https://www.twosigma.com/careers/", "generic"),
+    CompanySeed("Two Sigma", "quant_hedge_fund", "https://careers.twosigma.com/", "generic"),
     CompanySeed("Citadel", "multi_manager", "https://www.citadel.com/careers/open-opportunities/", "generic"),
     CompanySeed(
         "Citadel Securities",
@@ -81,7 +81,7 @@ SEEDS: list[CompanySeed] = [
     CompanySeed(
         "Flow Traders",
         "market_maker",
-        "https://www.flowtraders.com/careers/jobs",
+        "https://www.flowtraders.com/careers/job-search/",
         "generic",
     ),
     CompanySeed("Akuna Capital", "prop", "https://akunacapital.com/careers", "generic"),

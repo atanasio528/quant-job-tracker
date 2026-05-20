@@ -23,7 +23,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 
 ### Hedge Funds (41)
 - D. E. Shaw: https://www.deshaw.com/careers
-- Two Sigma: https://www.twosigma.com/careers/
+- Two Sigma: https://careers.twosigma.com/
 - Citadel: https://www.citadel.com/careers/open-opportunities/
 - Point72: https://careers.point72.com/
 - Cubist Systematic Strategies: https://careers.point72.com/
@@ -76,7 +76,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Tower Research Capital: https://www.tower-research.com/open-positions/
 - XTX Markets: https://www.xtxmarkets.com/careers/
 - Virtu Financial: https://www.virtu.com/careers/
-- Flow Traders: https://www.flowtraders.com/careers/jobs
+- Flow Traders: https://www.flowtraders.com/careers/job-search/
 - Akuna Capital: https://akunacapital.com/careers
 - Chicago Trading Company: https://www.chicagotrading.com/careers/
 - Five Rings: https://fiverings.com/careers/
@@ -106,7 +106,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Hudson River Trading: https://www.hudsonrivertrading.com/careers/ | trusted patterns: `/careers/`, `greenhouse.io`. Official careers page; role details are surfaced from the HRT careers experience.
 - Jane Street: https://www.janestreet.com/join-jane-street/open-roles/ | trusted patterns: `/join-jane-street/open-roles/`. Official open roles page; querystring filters are categories, not separate job details.
 - D. E. Shaw: https://www.deshaw.com/careers | trusted patterns: `/careers/`, `/recruit/jobs/`. Official careers page; job detail URLs use `/careers/<role>-<id>`.
-- Two Sigma: https://www.twosigma.com/careers/ | trusted patterns: `/careers/`. Official careers page; reject `/businesses/` and article pages.
+- Two Sigma: https://careers.twosigma.com/ | trusted patterns: `careers.twosigma.com`, `/careers/OpenRoles/`. Official careers portal; reject `twosigma.com` `/businesses/` and article pages.
 - Citadel: https://www.citadel.com/careers/open-opportunities/ | trusted patterns: `/careers/details/`, `/careers/open-opportunities/`. Official open opportunities page; job postings use `/careers/details/`.
 - Citadel Securities: https://www.citadelsecurities.com/careers/open-opportunities/ | trusted patterns: `/careers/details/`, `/careers/open-opportunities/`. Official open opportunities page; job postings use `/careers/details/`.
 - Point72: https://careers.point72.com/ | trusted patterns: `careers.point72.com`, `CSJobDetail`, `CSCareerSearch`. Official careers portal; reject `point72.com` marketing/category links.
@@ -136,7 +136,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - IMC Trading: https://www.imc.com/us/careers/jobs/ | trusted patterns: `/us/careers/jobs`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - XTX Markets: https://www.xtxmarkets.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Virtu Financial: https://www.virtu.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
-- Flow Traders: https://www.flowtraders.com/careers/jobs | trusted patterns: `/careers/jobs`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Flow Traders: https://www.flowtraders.com/careers/job-search/ | trusted patterns: `/careers/job-search/`, `/careers/`. Official job-search surface linked from the careers page; `/careers/jobs` can return 404.
 - Old Mission: https://www.oldmissioncapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Belvedere Trading: https://www.belvederetrading.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Maven Securities: https://www.mavensecurities.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.

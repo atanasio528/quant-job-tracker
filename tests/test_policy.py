@@ -46,6 +46,25 @@ def test_real_evaluator_policy_includes_job_source_links() -> None:
     assert "page_noise" in bundle
 
 
+def test_url_manager_policy_exists_and_has_first_five_sources() -> None:
+    bundle = load_policy_bundle(Path("policies"), "url_manager")
+
+    assert "URL Manager Policy" in bundle
+    assert "First Five Company Source Map" in bundle
+    for company, url in [
+        ("Hudson River Trading", "https://www.hudsonrivertrading.com/careers/"),
+        ("Jane Street", "https://www.janestreet.com/join-jane-street/open-roles/"),
+        ("D. E. Shaw", "https://www.deshaw.com/careers"),
+        ("Two Sigma", "https://careers.twosigma.com/"),
+        ("Citadel", "https://www.citadel.com/careers/open-opportunities/"),
+    ]:
+        assert company in bundle
+        assert url in bundle
+    assert "blocked_by_provider" in bundle
+    assert "Flow Traders Correction" in bundle
+    assert "https://www.flowtraders.com/careers/job-search/" in bundle
+
+
 def test_real_evaluator_policy_lists_all_target_company_sources() -> None:
     bundle = load_policy_bundle(Path("policies"), "evaluator")
     source_by_company = {source.company: source for source in JOB_SOURCE_SEEDS}

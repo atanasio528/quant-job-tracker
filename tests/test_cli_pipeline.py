@@ -49,6 +49,51 @@ def test_collect_sources_command_stores_curated_job_sources(tmp_path: Path) -> N
         deshaw = session.query(CompanyJobSource).filter_by(company="D. E. Shaw").one()
         assert deshaw.source_url == "https://www.deshaw.com/careers"
         assert "/careers/" in deshaw.url_patterns
+        flow = session.query(CompanyJobSource).filter_by(company="Flow Traders").one()
+        assert flow.source_url == "https://www.flowtraders.com/careers/job-search/"
+        assert "/careers/job-search/" in flow.url_patterns
+
+
+def test_collect_sources_command_retires_stale_source_urls(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        for company_name, stale_url in [
+            ("Flow Traders", "https://www.flowtraders.com/careers/jobs"),
+            ("Two Sigma", "https://www.twosigma.com/careers/"),
+        ]:
+            company = Company(
+                name=company_name,
+                group="prop",
+                career_url=stale_url,
+                active=True,
+            )
+            session.add(company)
+            session.flush()
+            session.add(
+                CompanyJobSource(
+                    company_id=company.id,
+                    company=company_name,
+                    source_url=stale_url,
+                    source_type="official_careers",
+                    url_patterns="/careers/",
+                    active=True,
+                )
+            )
+        session.commit()
+
+    result = runner.invoke(app, ["collect-sources", "--db", str(db_path)])
+
+    assert result.exit_code == 0
+    with create_session(db_path) as session:
+        flow_active = session.query(CompanyJobSource).filter_by(company="Flow Traders", active=True).all()
+        assert [row.source_url for row in flow_active] == [
+            "https://www.flowtraders.com/careers/job-search/"
+        ]
+        two_sigma_active = session.query(CompanyJobSource).filter_by(company="Two Sigma", active=True).all()
+        assert [row.source_url for row in two_sigma_active] == ["https://careers.twosigma.com/"]
 
 
 def test_sources_command_lists_stored_job_sources(tmp_path: Path) -> None:

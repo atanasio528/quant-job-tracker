@@ -52,10 +52,14 @@ def upsert_company_job_source(db_path: Path, source: CompanyJobSourceSeed) -> No
             )
             session.add(company)
             session.flush()
-        row = (
+        rows = (
             session.query(CompanyJobSource)
-            .filter_by(company_id=company.id, source_url=source.source_url)
-            .one_or_none()
+            .filter_by(company_id=company.id, source_type=source.source_type)
+            .all()
+        )
+        row = next(
+            (candidate for candidate in rows if candidate.source_url == source.source_url),
+            None,
         )
         if row is None:
             row = CompanyJobSource(
@@ -69,14 +73,17 @@ def upsert_company_job_source(db_path: Path, source: CompanyJobSourceSeed) -> No
                 active=True,
             )
             session.add(row)
-        else:
-            row.company = company.name
-            row.source_type = source.source_type
-            row.url_patterns = "\n".join(source.url_patterns)
-            row.notes = source.notes
-            row.confidence = source.confidence
-            row.active = True
-            row.updated_at = now
+        row.company = company.name
+        row.source_type = source.source_type
+        row.url_patterns = "\n".join(source.url_patterns)
+        row.notes = source.notes
+        row.confidence = source.confidence
+        row.active = True
+        row.updated_at = now
+        for stale_row in rows:
+            if stale_row is not row:
+                stale_row.active = False
+                stale_row.updated_at = now
         session.commit()
 
 

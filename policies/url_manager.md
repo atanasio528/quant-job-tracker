@@ -1,0 +1,98 @@
+# URL Manager Policy
+
+The URL manager owns company-by-company job-source discovery before crawler changes. Its job is to give the crawler a small, trusted map of where official live job postings actually appear, and to give the evaluator enough URL context to flag bad rows.
+
+## Responsibilities
+
+- Find and maintain official career/job-posting URLs for every target company.
+- Prefer official company domains and ATS pages linked from official career pages.
+- Record `source_url`, `trusted_url_patterns`, `reject_url_patterns`, `confidence`, `verification_status`, and short crawl notes.
+- Mark bot-blocked or dynamically rendered pages as `blocked_by_provider` instead of replacing them with unofficial mirrors.
+- Never approve blog posts, insight pages, strategy pages, business overview pages, PDFs, investor pages, LinkedIn-only pages, or search-engine snippets as job sources.
+- Give crawler notes that explain how to reach postings when the source page needs filters, pagination, embedded ATS data, or browser rendering.
+
+## Collection Workflow
+
+1. Start from the company name in `SEEDS` and the current row in `JOB_SOURCE_SEEDS`.
+2. Open the official homepage or official careers page first.
+3. Follow links labeled `Open Roles`, `Job Search`, `Careers`, `Join Us`, `Opportunities`, `Students`, `Graduates`, or equivalent.
+4. Confirm the final source page exposes actual role titles, locations, job cards, application links, or an official ATS search interface.
+5. Capture one source URL that other roles can revisit directly. If the direct job-search page is stable, use it as `source_url`; otherwise use the parent career page and document the navigation path.
+6. Record trusted detail patterns only after seeing real job-card or detail links.
+7. Record reject patterns for nearby non-job pages that the generic crawler could mistake for jobs.
+8. If ordinary HTTP crawling returns 403/404 while a browser can view the page, keep the official source and set `verification_status=blocked_by_provider`.
+9. Hand off the source map to the crawler, then review sampled crawler rows with the evaluator for `not_job_page`, `title_dirty`, and `needs_better_adapter` flags.
+
+## Field Conventions
+
+- `source_url`: the canonical official page to crawl or open first.
+- `entry_url`: optional parent page when users must navigate from a broader careers page.
+- `trusted_url_patterns`: URL substrings that can identify valid job list/detail pages.
+- `reject_url_patterns`: URL substrings that should not be treated as jobs.
+- `confidence`: `high`, `medium`, `low`, or `blocked`.
+- `verification_status`: `verified_live`, `verified_dynamic`, `blocked_by_provider`, `needs_manual_review`, or `retired`.
+- `crawl_note`: one short sentence about page structure or crawler constraints.
+
+## First Five Company Source Map
+
+### Hudson River Trading
+
+- Category: Prop Trading
+- Source URL: https://www.hudsonrivertrading.com/careers/
+- Trusted URL patterns: `/careers/`, `boards.greenhouse.io/hrttalentcommunity`
+- Reject URL patterns: `/tech-blog/`, `/about/`, `/offices/`
+- Confidence: high
+- Verification status: verified_dynamic
+- Crawl note: The careers page has search filters and open-role sections; Greenhouse links may be talent-community links, so the crawler should keep official HRT career-page context when classifying rows.
+
+### Jane Street
+
+- Category: Prop Trading
+- Source URL: https://www.janestreet.com/join-jane-street/open-roles/
+- Trusted URL patterns: `/join-jane-street/open-roles/`
+- Reject URL patterns: `/tech-talks/`, `/blog/`, `/programs-and-events/`
+- Confidence: high
+- Verification status: verified_live
+- Crawl note: Job filters are query parameters on the same open-roles page; do not treat filter pages as separate companies or duplicate sources.
+
+### D. E. Shaw
+
+- Category: Hedge Funds
+- Source URL: https://www.deshaw.com/careers
+- Trusted URL patterns: `/careers/`, `/careers/<role>-<id>`, `apply.deshaw.com`
+- Reject URL patterns: `/about/`, `/what-we-do/`, `/recruiting-fraud/`
+- Confidence: high
+- Verification status: verified_live
+- Crawl note: Role cards on the careers page link to detail pages such as `/careers/quantitative-analyst-2636`; titles may be prefixed by icon text and must be cleaned.
+
+### Two Sigma
+
+- Category: Hedge Funds
+- Source URL: https://careers.twosigma.com/
+- Entry URL: https://www.twosigma.com/careers/
+- Trusted URL patterns: `careers.twosigma.com`, `/careers/OpenRoles/`, `/careers/JobDetail`
+- Reject URL patterns: `www.twosigma.com/businesses/`, `www.twosigma.com/articles/`, `www.twosigma.com/insights/`
+- Confidence: high
+- Verification status: verified_live
+- Crawl note: The real posting surface is the Two Sigma careers portal; the corporate careers page is useful as an entry page but should not be the crawler's only source.
+
+### Citadel
+
+- Category: Hedge Funds
+- Source URL: https://www.citadel.com/careers/open-opportunities/
+- Trusted URL patterns: `/careers/open-opportunities/`, `/careers/details/`
+- Reject URL patterns: `/news/`, `/what-we-do/`, `/career-perspectives/`
+- Confidence: blocked
+- Verification status: blocked_by_provider
+- Crawl note: The official open-opportunities page lists jobs and detail links, but local HTTP crawling can hit 403; use browser/manual verification or a dedicated adapter instead of switching to unofficial sources.
+
+## Flow Traders Correction
+
+- Category: Prop Trading
+- Entry URL: https://www.flowtraders.com/careers/
+- Source URL: https://www.flowtraders.com/careers/job-search/
+- Trusted URL patterns: `/careers/job-search/`, `/careers/`
+- Reject URL patterns: `/careers/jobs`, `/news/`, `/investors/`, `/foundation/`
+- Confidence: medium
+- Verification status: verified_dynamic
+- Crawl note: `/careers/jobs` can return 404. The official path is to open the careers page, use `Job Search`, then search/filter relevant roles on `/careers/job-search/`.

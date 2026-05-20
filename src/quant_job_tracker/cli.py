@@ -142,6 +142,7 @@ def sources(db: Path = DEFAULT_DB_PATH) -> None:
         rows = (
             session.query(CompanyJobSource, Company)
             .join(Company, Company.id == CompanyJobSource.company_id)
+            .filter(CompanyJobSource.active.is_(True))
             .order_by(CompanyJobSource.company)
             .all()
         )

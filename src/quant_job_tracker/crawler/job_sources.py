@@ -35,10 +35,10 @@ JOB_SOURCE_SEEDS: tuple[CompanyJobSourceSeed, ...] = (
     ),
     CompanyJobSourceSeed(
         "Two Sigma",
-        "https://www.twosigma.com/careers/",
+        "https://careers.twosigma.com/",
         "official_careers",
-        ("/careers/",),
-        "Official careers page; reject /businesses/ and article pages.",
+        ("careers.twosigma.com", "/careers/OpenRoles/"),
+        "Official careers portal; reject twosigma.com /businesses/ and article pages.",
     ),
     CompanyJobSourceSeed(
         "Citadel",
@@ -252,10 +252,10 @@ JOB_SOURCE_SEEDS: tuple[CompanyJobSourceSeed, ...] = (
     ),
     CompanyJobSourceSeed(
         "Flow Traders",
-        "https://www.flowtraders.com/careers/jobs",
+        "https://www.flowtraders.com/careers/job-search/",
         "official_careers",
-        ("/careers/jobs",),
-        "Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.",
+        ("/careers/job-search/", "/careers/"),
+        "Official job-search surface linked from the careers page; /careers/jobs can return 404.",
         "medium",
     ),
     CompanyJobSourceSeed(
