@@ -239,5 +239,4 @@ SEEDS: list[CompanySeed] = [
     CompanySeed("Morgan Stanley", "sell_side_quant", "https://www.morganstanley.com/people-opportunities/careers", "generic"),
     CompanySeed("Citi", "sell_side_quant", "https://jobs.citi.com/", "generic"),
     CompanySeed("Bank of America", "sell_side_quant", "https://careers.bankofamerica.com/", "generic"),
-    CompanySeed("Barclays", "sell_side_quant", "https://search.jobs.barclays/", "generic"),
 ]
