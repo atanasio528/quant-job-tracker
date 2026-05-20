@@ -20,15 +20,24 @@ def upsert_crawled_job(
     crawl_note: str,
 ) -> None:
     now = datetime.utcnow()
+    new_hash = hash_jd(jd)
     with create_session(db_path) as session:
         existing = session.query(Job).filter_by(url=card.url).one_or_none()
+        if existing is None:
+            existing = (
+                session.query(Job)
+                .filter_by(company_id=company_id, jd_hash=new_hash)
+                .one_or_none()
+            )
         if existing:
             existing.title = card.title
             existing.loc = card.loc
+            existing.url = card.url
             existing.jd = jd
-            existing.jd_hash = hash_jd(jd)
+            existing.jd_hash = new_hash
             existing.status = "live"
             existing.last_seen = now
+            existing.closed_at = None
             existing.crawl_note = crawl_note
         else:
             session.add(
@@ -40,7 +49,7 @@ def upsert_crawled_job(
                     url=card.url,
                     source="official",
                     jd=jd,
-                    jd_hash=hash_jd(jd),
+                    jd_hash=new_hash,
                     status="new",
                     first_seen=now,
                     last_seen=now,
