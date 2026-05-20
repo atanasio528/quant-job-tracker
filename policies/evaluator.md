@@ -10,6 +10,99 @@ Prefer keeping edge cases visible with honest low scores over silently rejecting
 
 Use these source links and trusted URL patterns when deciding whether a crawled row came from a real company job-posting surface. If a stored row points to a blog, insight article, product page, PDF, business overview, or unrelated external domain, flag it as `page_noise`, `title_dirty`, `not_job_page`, or `needs_better_adapter`.
 
+## Target Company Categories
+
+Every target company must belong to exactly one of these evaluator categories. Use the category when reviewing source quality and when explaining crawler false positives.
+
+### Investment Banks (5)
+- Goldman Sachs: https://www.goldmansachs.com/careers/
+- JPMorgan Chase: https://careers.jpmorgan.com/us/en/home
+- Morgan Stanley: https://www.morganstanley.com/careers/career-opportunities-search
+- Citi: https://jobs.citi.com/
+- Bank of America: https://careers.bankofamerica.com/
+
+### Hedge Funds (41)
+- D. E. Shaw: https://www.deshaw.com/careers
+- Two Sigma: https://www.twosigma.com/careers/
+- Citadel: https://www.citadel.com/careers/open-opportunities/
+- Point72: https://careers.point72.com/
+- Cubist Systematic Strategies: https://careers.point72.com/
+- Millennium Management: https://www.mlp.com/careers/
+- Balyasny Asset Management: https://www.bamfunds.com/careers/
+- Squarepoint Capital: https://www.squarepoint-capital.com/open-opportunities
+- Qube Research & Technologies: https://www.qube-rt.com/careers/
+- Renaissance Technologies: https://www.rentec.com/Careers.action
+- AQR Capital Management: https://www.aqr.com/careers
+- Man Group: https://www.man.com/careers
+- Winton: https://www.winton.com/careers
+- WorldQuant: https://www.worldquant.com/careers/
+- G-Research: https://www.gresearch.com/careers/
+- Capula Investment Management: https://www.capulaglobal.com/careers/
+- Schonfeld: https://www.schonfeld.com/careers/
+- Verition Fund Management: https://www.verition.com/careers/
+- ExodusPoint: https://www.exoduspoint.com/careers/
+- PDT Partners: https://www.pdtpartners.com/careers/
+- The Voleon Group: https://www.voleon.com/careers
+- Trexquant: https://www.trexquant.com/careers/
+- AlphaGrep: https://www.alpha-grep.com/careers/
+- CFM: https://www.cfm.com/join-us/
+- Systematica Investments: https://www.systematica.com/careers/
+- Aspect Capital: https://www.aspectcapital.com/careers/
+- Graham Capital Management: https://www.grahamcapital.com/careers/
+- Brevan Howard: https://www.brevanhoward.com/careers/
+- Marshall Wace: https://www.mwam.com/careers/
+- Rokos Capital Management: https://www.rokoscapital.com/careers/
+- Tudor Investment Corporation: https://www.tudor.com/careers/
+- Aquatic Capital Management: https://aquatic.com/careers/
+- Voloridge: https://www.voloridge.com/careers/
+- Kepos Capital: https://www.keposcapital.com/careers/
+- Walleye Capital: https://www.walleyecapital.com/careers/
+- Paloma Partners: https://www.paloma.com/careers/
+- Laurion Capital: https://www.laurioncapital.com/careers/
+- Eisler Capital: https://www.eislercapital.com/careers/
+- LMR Partners: https://www.lmrpartners.com/careers/
+- Quadrature: https://quadrature.ai/careers/
+- Teza Technologies: https://www.teza.com/careers/
+
+### Prop Trading (30)
+- Hudson River Trading: https://www.hudsonrivertrading.com/careers/
+- Jane Street: https://www.janestreet.com/join-jane-street/open-roles/
+- Citadel Securities: https://www.citadelsecurities.com/careers/open-opportunities/
+- Susquehanna International Group: https://careers.sig.com/
+- Optiver: https://optiver.com/working-at-optiver/career-opportunities/
+- IMC Trading: https://www.imc.com/us/careers/jobs/
+- DRW: https://drw.com/work-at-drw/listings
+- Jump Trading: https://www.jumptrading.com/careers/
+- Tower Research Capital: https://www.tower-research.com/open-positions/
+- XTX Markets: https://www.xtxmarkets.com/careers/
+- Virtu Financial: https://www.virtu.com/careers/
+- Flow Traders: https://www.flowtraders.com/careers/jobs
+- Akuna Capital: https://akunacapital.com/careers
+- Chicago Trading Company: https://www.chicagotrading.com/careers/
+- Five Rings: https://fiverings.com/careers/
+- Old Mission: https://www.oldmissioncapital.com/careers/
+- Belvedere Trading: https://www.belvederetrading.com/careers/
+- Maven Securities: https://www.mavensecurities.com/careers/
+- TransMarket Group: https://www.transmarketgroup.com/careers/
+- Quantlab: https://www.quantlab.com/careers/
+- Wolverine Trading: https://www.wolve.com/careers/
+- Headlands Technologies: https://www.headlandstech.com/careers/
+- Radix Trading: https://radixtrading.co/careers/
+- Mako Trading: https://www.mako.com/careers/
+- Da Vinci Derivatives: https://davinciderivatives.com/careers/
+- Eclipse Trading: https://www.eclipsetrading.com/careers/
+- Group One Trading: https://www.group1.com/careers/
+- Peak6: https://www.peak6.com/careers/
+- WH Trading: https://www.whtrading.com/careers/
+- All Options: https://alloptions.nl/careers/
+
+### Asset Management (5)
+- Arrowstreet Capital: https://www.arrowstreetcapital.com/careers/
+- BlackRock: https://careers.blackrock.com/
+- Acadian Asset Management: https://www.acadian-asset.com/careers
+- PanAgora Asset Management: https://www.panagora.com/careers/
+- Dimensional Fund Advisors: https://www.dimensional.com/us-en/careers
+
 - Hudson River Trading: https://www.hudsonrivertrading.com/careers/ | trusted patterns: `/careers/`, `greenhouse.io`. Official careers page; role details are surfaced from the HRT careers experience.
 - Jane Street: https://www.janestreet.com/join-jane-street/open-roles/ | trusted patterns: `/join-jane-street/open-roles/`. Official open roles page; querystring filters are categories, not separate job details.
 - D. E. Shaw: https://www.deshaw.com/careers | trusted patterns: `/careers/`, `/recruit/jobs/`. Official careers page; job detail URLs use `/careers/<role>-<id>`.

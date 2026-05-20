@@ -8,6 +8,7 @@ from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
 from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter, clean_stored_title
+from quant_job_tracker.crawler.categories import category_for_group
 from quant_job_tracker.crawler.filters import keep_job_card
 from quant_job_tracker.crawler.job_sources import JOB_SOURCE_SEEDS
 from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
@@ -135,12 +136,20 @@ def collect_sources(db: Path = DEFAULT_DB_PATH) -> None:
 @app.command()
 def sources(db: Path = DEFAULT_DB_PATH) -> None:
     create_tables(db)
-    from quant_job_tracker.models import CompanyJobSource
+    from quant_job_tracker.models import Company, CompanyJobSource
 
     with create_session(db) as session:
-        rows = session.query(CompanyJobSource).order_by(CompanyJobSource.company).all()
-        for row in rows:
-            typer.echo(f"{row.company}\t{row.source_type}\t{row.confidence}\t{row.source_url}")
+        rows = (
+            session.query(CompanyJobSource, Company)
+            .join(Company, Company.id == CompanyJobSource.company_id)
+            .order_by(CompanyJobSource.company)
+            .all()
+        )
+        for row, company in rows:
+            category = category_for_group(company.group) if company.group != "unknown" else "Unknown"
+            typer.echo(
+                f"{row.company}\t{category}\t{row.source_type}\t{row.confidence}\t{row.source_url}"
+            )
 
 
 @app.command()

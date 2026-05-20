@@ -5,6 +5,7 @@ import httpx
 from typer.testing import CliRunner
 
 from quant_job_tracker.crawler.adapters import JobCard
+from quant_job_tracker.crawler.categories import CANONICAL_CATEGORIES, category_for_group
 from quant_job_tracker.crawler.job_sources import JOB_SOURCE_SEEDS
 from quant_job_tracker.crawler.seeds import CompanySeed
 from quant_job_tracker.crawler.seeds import SEEDS
@@ -60,6 +61,7 @@ def test_sources_command_lists_stored_job_sources(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert "D. E. Shaw" in result.output
+    assert "Hedge Funds" in result.output
     assert "official_careers" in result.output
 
 
@@ -68,6 +70,19 @@ def test_job_source_seeds_cover_all_target_companies() -> None:
     seed_companies = {seed.name for seed in SEEDS}
 
     assert seed_companies <= source_companies
+
+
+def test_canonical_categories_partition_all_target_companies() -> None:
+    counts = {category: 0 for category in CANONICAL_CATEGORIES}
+    for seed in SEEDS:
+        counts[category_for_group(seed.group)] += 1
+
+    assert counts == {
+        "Investment Banks": 5,
+        "Hedge Funds": 41,
+        "Prop Trading": 30,
+        "Asset Management": 5,
+    }
 
 
 def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> None:

@@ -35,6 +35,11 @@ def test_real_evaluator_policy_includes_job_source_links() -> None:
     bundle = load_policy_bundle(Path("policies"), "evaluator")
 
     assert "Official Job Source Links" in bundle
+    assert "Target Company Categories" in bundle
+    assert "Investment Banks (5)" in bundle
+    assert "Hedge Funds (41)" in bundle
+    assert "Prop Trading (30)" in bundle
+    assert "Asset Management (5)" in bundle
     assert "https://www.deshaw.com/careers" in bundle
     assert "https://careers.point72.com/" in bundle
     assert "job-boards.greenhouse.io/fiveringsllc/jobs/" in bundle
