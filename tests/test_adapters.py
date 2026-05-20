@@ -1,7 +1,7 @@
 import httpx
 import respx
 
-from quant_job_tracker.crawler.adapters import GenericAdapter, JobCard
+from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter, JobCard
 
 
 def test_generic_adapter_extracts_links_from_html() -> None:
@@ -127,3 +127,53 @@ def test_generic_adapter_fetches_jd() -> None:
     jd = adapter.fetch_jd("https://example.com/jobs/1")
 
     assert "Alpha research role" in jd
+
+
+@respx.mock
+def test_generic_adapter_sends_browser_headers() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        assert "Mozilla/5.0" in request.headers["user-agent"]
+        assert "text/html" in request.headers["accept"]
+        assert request.headers["accept-language"].startswith("en-US")
+        return httpx.Response(200, text="<main>Quant Researcher</main>")
+
+    respx.get("https://example.com/careers").mock(side_effect=respond)
+    adapter = GenericAdapter()
+
+    html = adapter.fetch_html("https://example.com/careers")
+
+    assert "Quant Researcher" in html
+
+
+@respx.mock
+def test_generic_adapter_raises_blocked_for_cloudflare_challenge() -> None:
+    respx.get("https://example.com/careers").mock(
+        return_value=httpx.Response(
+            403,
+            headers={"cf-mitigated": "challenge"},
+            text="<!doctype html><title>Just a moment...</title>",
+        )
+    )
+    adapter = GenericAdapter()
+
+    try:
+        adapter.fetch_html("https://example.com/careers")
+    except CareerPageBlockedError as exc:
+        assert "Cloudflare" in str(exc)
+    else:
+        raise AssertionError("expected CareerPageBlockedError")
+
+
+@respx.mock
+def test_generic_adapter_raises_blocked_for_plain_403() -> None:
+    respx.get("https://example.com/careers").mock(
+        return_value=httpx.Response(403, text="403 - Forbidden")
+    )
+    adapter = GenericAdapter()
+
+    try:
+        adapter.fetch_html("https://example.com/careers")
+    except CareerPageBlockedError as exc:
+        assert "HTTP 403" in str(exc)
+    else:
+        raise AssertionError("expected CareerPageBlockedError")

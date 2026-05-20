@@ -4,12 +4,25 @@ from urllib.parse import urljoin, urlparse, urlunparse
 import httpx
 from bs4 import BeautifulSoup
 
+BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
 
 @dataclass(frozen=True)
 class JobCard:
     title: str
     loc: str
     url: str
+
+
+class CareerPageBlockedError(RuntimeError):
+    pass
 
 
 class GenericAdapter:
@@ -54,8 +67,12 @@ class GenericAdapter:
         return cards
 
     def fetch_html(self, url: str) -> str:
-        with httpx.Client(timeout=20.0, follow_redirects=True) as client:
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
             response = client.get(url)
+            if response.status_code == 403:
+                if is_cloudflare_challenge(response):
+                    raise CareerPageBlockedError("blocked by Cloudflare challenge")
+                raise CareerPageBlockedError("blocked by career site with HTTP 403")
             response.raise_for_status()
             return response.text
 
@@ -74,3 +91,11 @@ def clean_card_title(raw_title: str) -> str:
     if " : " in title:
         title = title.split(" : ", 1)[0].strip()
     return title
+
+
+def is_cloudflare_challenge(response: httpx.Response) -> bool:
+    return (
+        response.status_code == 403
+        and response.headers.get("cf-mitigated") == "challenge"
+        and "Just a moment" in response.text[:500]
+    )

@@ -6,7 +6,7 @@ import uvicorn
 from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
-from quant_job_tracker.crawler.adapters import GenericAdapter
+from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter
 from quant_job_tracker.crawler.filters import keep_job_card
 from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
 from quant_job_tracker.crawler.service import close_stale_jobs, upsert_company_seed, upsert_crawled_job
@@ -46,6 +46,8 @@ def _crawl_seeds(
             html = adapter.fetch_html(seed.career_url)
             cards = adapter.parse_cards(seed.career_url, html)
             successful_company_ids.append(company_id)
+        except CareerPageBlockedError:
+            continue
         except Exception as exc:
             errors.append(f"{seed.name}: {exc}")
             continue
@@ -59,6 +61,8 @@ def _crawl_seeds(
                 jd = adapter.fetch_jd(card.url)
                 upsert_crawled_job(db, company_id, seed.name, card, jd, crawl_note)
                 jobs_stored += 1
+            except CareerPageBlockedError:
+                continue
             except Exception as exc:
                 errors.append(f"{seed.name} {card.url}: {exc}")
 

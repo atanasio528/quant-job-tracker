@@ -154,6 +154,37 @@ def test_crawl_command_fetches_filters_stores_and_records_run(
         assert run.error is None
 
 
+def test_crawl_command_skips_known_blocked_career_pages(tmp_path: Path, monkeypatch) -> None:
+    from quant_job_tracker import cli
+
+    db_path = tmp_path / "qjt.sqlite3"
+    seed = CompanySeed(
+        name="Blocked Fund",
+        group="quant",
+        career_url="https://example.com/careers",
+        ats="generic",
+    )
+
+    class FakeAdapter:
+        def fetch_html(self, url: str) -> str:
+            assert url == seed.career_url
+            raise cli.CareerPageBlockedError("blocked by Cloudflare challenge")
+
+    monkeypatch.setattr(cli, "SEEDS", [seed])
+    monkeypatch.setattr(cli, "GenericAdapter", FakeAdapter)
+
+    result = runner.invoke(cli.app, ["crawl", "--db", str(db_path), "--limit", "1"])
+
+    assert result.exit_code == 0
+    assert "Crawled 1 companies, found 0 jobs, stored 0 jobs" in result.output
+    with create_session(db_path) as session:
+        company = session.query(Company).one()
+        assert company.name == "Blocked Fund"
+        run = session.query(Run).one()
+        assert run.status == "success"
+        assert run.error is None
+
+
 def test_eval_pending_reuses_eval_for_unchanged_jd_after_recrawl(tmp_path: Path) -> None:
     from quant_job_tracker.cli import app
 
