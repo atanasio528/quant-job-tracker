@@ -27,3 +27,13 @@ def test_load_policy_bundle_rejects_unknown_role(tmp_path: Path) -> None:
         assert "missing.md" in str(exc)
     else:
         raise AssertionError("Expected FileNotFoundError")
+
+
+def test_real_evaluator_policy_includes_job_source_links() -> None:
+    bundle = load_policy_bundle(Path("policies"), "evaluator")
+
+    assert "Official Job Source Links" in bundle
+    assert "https://www.deshaw.com/careers" in bundle
+    assert "https://careers.point72.com/" in bundle
+    assert "job-boards.greenhouse.io/fiveringsllc/jobs/" in bundle
+    assert "page_noise" in bundle
