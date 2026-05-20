@@ -1,6 +1,7 @@
 from pathlib import Path
+from urllib.parse import urlparse
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc
@@ -11,6 +12,13 @@ from quant_job_tracker.models import Eval, Job
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
+
+
+def safe_external_url(url: str) -> str | None:
+    parsed = urlparse(url)
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        return url
+    return None
 
 
 def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
@@ -34,12 +42,16 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
     @app.get("/jobs/{job_id}", response_class=HTMLResponse)
     def job_detail(request: Request, job_id: int):
         with create_session(db_path) as session:
-            job = session.query(Job).filter_by(id=job_id).one()
+            job = session.query(Job).filter_by(id=job_id).one_or_none()
+            if job is None:
+                raise HTTPException(status_code=404, detail="Job not found")
             evals = (
                 session.query(Eval).filter_by(job_id=job_id).order_by(desc(Eval.created_at)).all()
             )
             return templates.TemplateResponse(
-                request, "job_detail.html", {"job": job, "evals": evals}
+                request,
+                "job_detail.html",
+                {"job": job, "evals": evals, "official_url": safe_external_url(job.url)},
             )
 
     return app

@@ -2,7 +2,14 @@
 {% block content %}
 <p><a href="/">Back to jobs</a></p>
 <h1>{{ job.title }}</h1>
-<p><strong>{{ job.company }}</strong> · {{ job.loc }} · <a href="{{ job.url }}">Official posting</a></p>
+<p>
+  <strong>{{ job.company }}</strong> · {{ job.loc }} ·
+  {% if official_url %}
+    <a href="{{ official_url }}">Official posting</a>
+  {% else %}
+    <span class="muted">Official link unavailable</span>
+  {% endif %}
+</p>
 
 <h2>Evaluations</h2>
 {% for eval in evals %}
