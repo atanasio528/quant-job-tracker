@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -36,12 +36,14 @@ class GenericAdapter:
                 )
             ):
                 continue
-            href = link["href"]
-            if href.lstrip().startswith("#"):
+            href = link["href"].strip()
+            if href.startswith("#"):
                 continue
             url = urljoin(base_url, href)
-            if urlparse(url).scheme not in {"http", "https"}:
+            parsed_url = urlparse(url)
+            if parsed_url.scheme not in {"http", "https"}:
                 continue
+            url = urlunparse(parsed_url._replace(fragment=""))
             if url in seen_urls:
                 continue
             seen_urls.add(url)

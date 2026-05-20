@@ -26,7 +26,9 @@ def test_generic_adapter_ignores_non_http_links_with_relevant_keywords() -> None
     html = """
     <html><body>
       <a href="mailto:jobs@example.com">Quantitative Researcher</a>
+      <a href=" mailto:quant@example.com">Quant Developer</a>
       <a href="javascript:alert('apply')">Alpha Research Analyst</a>
+      <a href=" javascript:void(0)">Quant Portfolio Researcher</a>
       <a href="#open-roles">Investment Strategy Associate</a>
       <a href="/jobs/1">Quant Trader</a>
     </body></html>
@@ -57,6 +59,25 @@ def test_generic_adapter_deduplicates_cards_by_absolute_url() -> None:
             url="https://example.com/jobs/1",
         ),
         JobCard(title="Algorithm Trader", loc="Unknown", url="https://example.com/jobs/2"),
+    ]
+
+
+def test_generic_adapter_deduplicates_fragment_variants() -> None:
+    html = """
+    <html><body>
+      <a href="/jobs/1">Quantitative Researcher</a>
+      <a href="/jobs/1#apply">Senior Quant Researcher</a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+    cards = adapter.parse_cards("https://example.com/careers", html)
+
+    assert cards == [
+        JobCard(
+            title="Quantitative Researcher",
+            loc="Unknown",
+            url="https://example.com/jobs/1",
+        )
     ]
 
 
