@@ -93,6 +93,58 @@ def clean_card_title(raw_title: str) -> str:
     return title
 
 
+def clean_stored_title(raw_title: str, jd: str) -> str:
+    title = clean_card_title(raw_title)
+    dirty_markers = (
+        " Summary:",
+        " Read Post",
+        " Provides ",
+        " Build ",
+        " Make complex",
+        " Explore ",
+        " is a premier ",
+        " Chicago Trading Company ",
+    )
+    for marker in dirty_markers:
+        if marker in title:
+            title = title.split(marker, 1)[0].strip()
+    title = collapse_repeated_title(title)
+
+    if is_dirty_title(raw_title) and " | " in jd[:160]:
+        jd_title = jd.split(" | ", 1)[0].strip()
+        if 4 <= len(jd_title) <= 90:
+            title = jd_title
+
+    return title.strip(" -–|")
+
+
+def is_dirty_title(title: str) -> bool:
+    title_l = title.lower()
+    return any(
+        marker in title_l
+        for marker in (
+            " summary:",
+            " read post",
+            " provides ",
+            " read more",
+            " build ",
+            " make complex",
+            " explore ",
+            " is a premier ",
+        )
+    )
+
+
+def collapse_repeated_title(title: str) -> str:
+    words = title.split()
+    if len(words) % 2 != 0:
+        return title
+    midpoint = len(words) // 2
+    if words[:midpoint] == words[midpoint:]:
+        return " ".join(words[:midpoint])
+    return title
+
+
 def is_cloudflare_challenge(response: httpx.Response) -> bool:
     return (
         response.status_code == 403

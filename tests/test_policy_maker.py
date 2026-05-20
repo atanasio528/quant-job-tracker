@@ -25,7 +25,7 @@ def test_policy_maker_suggests_adapter_and_boundary_updates() -> None:
                 "title": "Open Roles",
                 "company": "Jane Street",
                 "front": "red",
-                "flags": "not_job_page,needs_better_adapter",
+                "flags": "not_job_page,needs_better_adapter,title_dirty,page_noise",
             },
             {
                 "title": "Quant Systems Developer",

@@ -3,10 +3,11 @@ from pathlib import Path
 
 import typer
 import uvicorn
+import httpx
 from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
-from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter
+from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter, clean_stored_title
 from quant_job_tracker.crawler.filters import keep_job_card
 from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
 from quant_job_tracker.crawler.service import close_stale_jobs, upsert_company_seed, upsert_crawled_job
@@ -37,7 +38,7 @@ def _crawl_seeds(
     companies_crawled = 0
     jobs_found = 0
     jobs_stored = 0
-    errors: list[str] = []
+    issues: dict[str, list[str]] = {"bad_seed_url": [], "bot_blocked": [], "other": []}
 
     for seed in selected_seeds:
         try:
@@ -46,10 +47,11 @@ def _crawl_seeds(
             html = adapter.fetch_html(seed.career_url)
             cards = adapter.parse_cards(seed.career_url, html)
             successful_company_ids.append(company_id)
-        except CareerPageBlockedError:
+        except CareerPageBlockedError as exc:
+            issues["bot_blocked"].append(f"{seed.name}: {exc}")
             continue
         except Exception as exc:
-            errors.append(f"{seed.name}: {exc}")
+            _record_crawl_issue(issues, seed.name, exc)
             continue
 
         jobs_found += len(cards)
@@ -61,13 +63,35 @@ def _crawl_seeds(
                 jd = adapter.fetch_jd(card.url)
                 upsert_crawled_job(db, company_id, seed.name, card, jd, crawl_note)
                 jobs_stored += 1
-            except CareerPageBlockedError:
+            except CareerPageBlockedError as exc:
+                issues["bot_blocked"].append(f"{seed.name} {card.url}: {exc}")
                 continue
             except Exception as exc:
-                errors.append(f"{seed.name} {card.url}: {exc}")
+                _record_crawl_issue(issues, f"{seed.name} {card.url}", exc)
 
     close_stale_jobs(db, successful_company_ids, crawl_started)
-    return companies_crawled, jobs_found, jobs_stored, "\n".join(errors) if errors else None
+    return companies_crawled, jobs_found, jobs_stored, _format_crawl_issues(issues)
+
+
+def _record_crawl_issue(issues: dict[str, list[str]], source: str, exc: Exception) -> None:
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 404:
+        issues["bad_seed_url"].append(f"{source}: 404 Not Found")
+    else:
+        issues["other"].append(f"{source}: {exc}")
+
+
+def _format_crawl_issues(issues: dict[str, list[str]]) -> str | None:
+    sections = []
+    labels = {
+        "bad_seed_url": "Bad seed URL / 404",
+        "bot_blocked": "Bot crawling prohibited / 403",
+        "other": "Other crawl errors",
+    }
+    for key in ("bad_seed_url", "bot_blocked", "other"):
+        rows = issues[key]
+        if rows:
+            sections.append(labels[key] + "\n" + "\n".join(f"- {row}" for row in rows))
+    return "\n\n".join(sections) if sections else None
 
 
 @app.command()
@@ -98,6 +122,10 @@ def eval_pending(db: Path = DEFAULT_DB_PATH) -> None:
         jobs = session.query(Job).filter(Job.status.in_(["new", "live"])).all()
         count = 0
         for job in jobs:
+            cleaned_title = clean_stored_title(job.title, job.jd)
+            title_changed = cleaned_title != job.title
+            if title_changed:
+                job.title = cleaned_title
             current_eval = (
                 session.query(Eval.id)
                 .filter(
@@ -108,7 +136,7 @@ def eval_pending(db: Path = DEFAULT_DB_PATH) -> None:
                 )
                 .first()
             )
-            if current_eval is not None:
+            if current_eval is not None and not title_changed:
                 continue
 
             result = classifier.classify(job.title, job.jd, policy)

@@ -11,11 +11,20 @@
       table { width: 100%; border-collapse: collapse; background: white; }
       th, td { padding: 10px 12px; border-bottom: 1px solid #e5e8eb; text-align: left; font-size: 14px; }
       th { background: #eef2f5; font-weight: 650; }
+      td.title { max-width: 520px; }
+      td.title a { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
       a { color: #075985; text-decoration: none; }
+      .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 14px 0; }
+      .toolbar label { display: grid; gap: 4px; font-size: 12px; color: #46515c; font-weight: 650; }
+      select, button, input, textarea { font: inherit; }
+      select, button { min-height: 34px; border: 1px solid #cfd6dd; border-radius: 6px; background: white; padding: 5px 9px; }
+      button { background: #12212f; color: white; cursor: pointer; }
+      .pager { display: flex; gap: 14px; align-items: center; margin: 14px 0; }
       .pill { border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 700; }
       .green { background: #d9fbe5; color: #075e2b; }
       .yellow { background: #fff4c2; color: #765900; }
       .red { background: #ffe1df; color: #8a1f17; }
+      .missing { background: #e9edf2; color: #46515c; }
       .muted { color: #66717c; }
       pre { white-space: pre-wrap; background: white; padding: 16px; border: 1px solid #e5e8eb; }
     </style>

@@ -1,5 +1,7 @@
 from pathlib import Path
 from datetime import datetime
+from math import ceil
+from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -15,6 +17,9 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 ALLOWED_REVIEW_DECISIONS = {"approved", "pending", "rejected", "needs_review"}
 ALLOWED_APP_STATUSES = {"not_started", "ready", "applied", "interview", "rejected", "offer", "closed"}
+LABEL_FILTERS = {"all", "green", "yellow", "red", "missing"}
+STATUS_FILTERS = {"all", "new", "live", "closed"}
+PAGE_SIZE = 50
 
 
 def safe_external_url(url: str) -> str | None:
@@ -29,25 +34,59 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
     app = FastAPI(title="Quant Job Tracker")
 
     @app.get("/", response_class=HTMLResponse)
-    def jobs(request: Request):
+    def jobs(
+        request: Request,
+        front: str = "all",
+        h1b: str = "all",
+        exp: str = "all",
+        status: str = "all",
+        page: int = 1,
+    ):
+        filters = {
+            "front": _normalize_filter(front, LABEL_FILTERS),
+            "h1b": _normalize_filter(h1b, LABEL_FILTERS),
+            "exp": _normalize_filter(exp, LABEL_FILTERS),
+            "status": _normalize_filter(status, STATUS_FILTERS),
+        }
+        page = max(page, 1)
         with create_session(db_path) as session:
             rows = []
-            for job in (
-                session.query(Job)
-                .filter(Job.status.in_(["new", "live"]))
-                .order_by(desc(Job.last_seen))
-                .limit(200)
-                .all()
-            ):
-                latest = (
-                    session.query(Eval)
-                    .filter_by(job_id=job.id)
-                    .order_by(desc(Eval.created_at))
-                    .first()
-                )
+            query = session.query(Job).order_by(desc(Job.last_seen))
+            if filters["status"] != "all":
+                query = query.filter_by(status=filters["status"])
+            for job in query.all():
+                latest = _preferred_eval(session, job.id)
+                if not _matches_eval_filter(latest, "front", filters["front"]):
+                    continue
+                if not _matches_eval_filter(latest, "h1b", filters["h1b"]):
+                    continue
+                if not _matches_eval_filter(latest, "exp", filters["exp"]):
+                    continue
                 application = session.query(App).filter_by(job_id=job.id).one_or_none()
                 rows.append({"job": job, "eval": latest, "application": application})
-        return templates.TemplateResponse(request, "jobs.html", {"rows": rows})
+        total_rows = len(rows)
+        total_pages = max(ceil(total_rows / PAGE_SIZE), 1)
+        page = min(page, total_pages)
+        start = (page - 1) * PAGE_SIZE
+        page_rows = rows[start : start + PAGE_SIZE]
+        prev_query = _page_query(filters, page - 1) if page > 1 else None
+        next_query = _page_query(filters, page + 1) if page < total_pages else None
+        return templates.TemplateResponse(
+            request,
+            "jobs.html",
+            {
+                "rows": page_rows,
+                "filters": filters,
+                "label_options": ["all", "green", "yellow", "red", "missing"],
+                "status_options": ["all", "new", "live", "closed"],
+                "page": page,
+                "total_pages": total_pages,
+                "total_rows": total_rows,
+                "page_size": PAGE_SIZE,
+                "prev_query": prev_query,
+                "next_query": next_query,
+            },
+        )
 
     @app.get("/jobs/{job_id}", response_class=HTMLResponse)
     def job_detail(request: Request, job_id: int):
@@ -132,3 +171,26 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
         return templates.TemplateResponse(request, "runs.html", {"rows": rows})
 
     return app
+
+
+def _preferred_eval(session, job_id: int) -> Eval | None:
+    evals = session.query(Eval).filter_by(job_id=job_id).order_by(desc(Eval.created_at)).all()
+    codex_eval = next((eval for eval in evals if eval.model == "codex-v1"), None)
+    return codex_eval or (evals[0] if evals else None)
+
+
+def _normalize_filter(value: str, allowed: set[str]) -> str:
+    value = value.lower().strip()
+    return value if value in allowed else "all"
+
+
+def _matches_eval_filter(eval: Eval | None, field: str, selected: str) -> bool:
+    if selected == "all":
+        return True
+    if eval is None:
+        return selected == "missing"
+    return getattr(eval, field) == selected
+
+
+def _page_query(filters: dict[str, str], page: int) -> str:
+    return urlencode({**filters, "page": page})

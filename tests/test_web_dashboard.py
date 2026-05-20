@@ -90,6 +90,142 @@ def test_web_dashboard_lists_jobs_and_detail(tmp_path: Path) -> None:
     assert "Alpha research role" in detail_response.text
 
 
+def test_web_dashboard_filters_eval_fields_and_status(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        green_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Quant Trading Intern",
+            loc="New York",
+            url="https://example.com/job/green",
+            source="official",
+            jd="Trading intern",
+            jd_hash="green",
+            status="live",
+        )
+        red_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Risk Quant",
+            loc="New York",
+            url="https://example.com/job/red",
+            source="official",
+            jd="Risk role",
+            jd_hash="red",
+            status="live",
+        )
+        closed_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Closed Quant Researcher",
+            loc="New York",
+            url="https://example.com/job/closed",
+            source="official",
+            jd="Alpha research role",
+            jd_hash="closed",
+            status="closed",
+        )
+        session.add_all([green_job, red_job, closed_job])
+        session.flush()
+        session.add_all(
+            [
+                Eval(
+                    job_id=green_job.id,
+                    jd_hash=green_job.jd_hash,
+                    front="green",
+                    h1b="yellow",
+                    exp="green",
+                    score=80,
+                    reason="Intern fit",
+                    flags="",
+                    model="codex-v1",
+                    policy_ver="v1",
+                ),
+                Eval(
+                    job_id=red_job.id,
+                    jd_hash=red_job.jd_hash,
+                    front="red",
+                    h1b="yellow",
+                    exp="green",
+                    score=20,
+                    reason="Risk",
+                    flags="risk",
+                    model="codex-v1",
+                    policy_ver="v1",
+                ),
+            ]
+        )
+        session.commit()
+
+    client = TestClient(create_app(db_path))
+
+    all_response = client.get("/")
+    filtered_response = client.get("/?front=green&h1b=yellow&exp=green&status=live")
+
+    assert all_response.status_code == 200
+    assert "Closed Quant Researcher" in all_response.text
+    assert 'name="front"' in all_response.text
+    assert filtered_response.status_code == 200
+    assert "Quant Trading Intern" in filtered_response.text
+    assert "Risk Quant" not in filtered_response.text
+    assert "Closed Quant Researcher" not in filtered_response.text
+
+
+def test_web_dashboard_paginates_collected_jobs(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        for index in range(55):
+            session.add(
+                Job(
+                    company_id=company.id,
+                    company=company.name,
+                    title=f"Quant Researcher {index:02d}",
+                    loc="New York",
+                    url=f"https://example.com/job/{index}",
+                    source="official",
+                    jd="Alpha research role",
+                    jd_hash=f"hash-{index}",
+                    status="live",
+                )
+            )
+        session.commit()
+
+    client = TestClient(create_app(db_path))
+
+    first_page = client.get("/")
+    second_page = client.get("/?page=2")
+
+    assert first_page.status_code == 200
+    assert "page 1 / 2" in first_page.text
+    assert "Next" in first_page.text
+    assert second_page.status_code == 200
+    assert "page 2 / 2" in second_page.text
+    assert "Previous" in second_page.text
+
+
 def test_missing_job_detail_returns_404(tmp_path: Path) -> None:
     from quant_job_tracker.web.app import create_app
 

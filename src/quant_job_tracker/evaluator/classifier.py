@@ -29,6 +29,7 @@ class HeuristicClassifier:
             "quantitative researcher",
             "quant trader",
             "quantitative trader",
+            "trading analyst",
             "trading strategy",
             "predictive",
         ]
@@ -78,13 +79,27 @@ class HeuristicClassifier:
         title_lower = title.lower()
         jd_lower = jd.lower()
         policy_lower = policy.lower()
+        page_noise_terms = [
+            " read more",
+            " read post",
+            " provides investment management",
+            "research archive",
+            "life at ",
+            "required disclosures",
+            "chief investment officer",
+        ]
+        dirty_title = any(term in title_lower for term in (" summary:", " read post", " provides "))
+        page_noise = any(term in title_lower for term in page_noise_terms)
+        front_intern = any(term in title_lower for term in ("intern", "graduate", "campus")) and any(
+            term in title_lower for term in ("quant", "trading", "trader", "research", "alpha")
+        )
         has_policy_title_alias = _policy_allows_front_alias(title_lower, policy_lower)
         has_front_alias_support = any(term in jd_lower for term in FRONT_ALIAS_SUPPORT_TERMS)
 
-        front = "green" if any(term in text for term in front_green_terms) else "red"
+        front = "green" if any(term in text for term in front_green_terms) or front_intern else "red"
         if front == "red" and has_policy_title_alias and has_front_alias_support:
             front = "green"
-        if any(term in text for term in front_red_terms):
+        if any(term in text for term in front_red_terms) or page_noise:
             front = "red"
 
         has_visa_red = any(term in text for term in visa_red_terms)
@@ -97,6 +112,8 @@ class HeuristicClassifier:
         else:
             h1b = "yellow"
         exp = "red" if any(term in text for term in senior_terms) else "green"
+        if front_intern:
+            exp = "green"
 
         score = 50
         if front == "green":
@@ -114,6 +131,10 @@ class HeuristicClassifier:
             flags.append("senior")
         if has_policy_title_alias:
             flags.append("title_alias")
+        if dirty_title:
+            flags.append("title_dirty")
+        if page_noise:
+            flags.append("page_noise")
 
         return EvalResult(
             front=front,

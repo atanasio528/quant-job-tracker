@@ -1,7 +1,12 @@
 import httpx
 import respx
 
-from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter, JobCard
+from quant_job_tracker.crawler.adapters import (
+    CareerPageBlockedError,
+    GenericAdapter,
+    JobCard,
+    clean_stored_title,
+)
 
 
 def test_generic_adapter_extracts_links_from_html() -> None:
@@ -115,6 +120,46 @@ def test_generic_adapter_cleans_card_icon_and_preview_description() -> None:
             url="https://www.deshaw.com/careers/proprietary-trading-intern-new-york-summer-2027-5731",
         )
     ]
+
+
+def test_clean_stored_title_strips_summary_preview() -> None:
+    title = (
+        "Senior Analyst, Equity Data Science Summary: PanAgora seeks to integrate a Sr. "
+        "Analyst to work closely with the Alpha Research team. Read Post"
+    )
+    jd = "Senior Analyst, Equity Data Science | PanAgora Careers"
+
+    assert clean_stored_title(title, jd) == "Senior Analyst, Equity Data Science"
+
+
+def test_clean_stored_title_strips_marketing_copy() -> None:
+    title = (
+        "Asset Management Provides investment management solutions across all major asset "
+        "classes to a diverse set of institutional and individual clients."
+    )
+    jd = "Careers in Asset Management | Goldman Sachs"
+
+    assert clean_stored_title(title, jd) == "Careers in Asset Management"
+
+
+def test_clean_stored_title_strips_category_marketing_copy() -> None:
+    title = (
+        "Quantitative Research Quantitative Research Build predictive models to better "
+        "understand dynamic global markets. Explore Working as a Quantitative Researcher"
+    )
+    jd = "Quantitative Research | Citadel"
+
+    assert clean_stored_title(title, jd) == "Quantitative Research"
+
+
+def test_clean_stored_title_strips_company_description_copy() -> None:
+    title = (
+        "Senior Quantitative Trader - Delta One Trading & Quant Chicago Trading Company "
+        "(CTC) is a premier proprietary trading firm specializing in options market making"
+    )
+    jd = "Senior Quantitative Trader - Delta One Trading & Quant | Chicago Trading Company"
+
+    assert clean_stored_title(title, jd) == "Senior Quantitative Trader - Delta One Trading & Quant"
 
 
 @respx.mock

@@ -135,3 +135,26 @@ def test_classifier_does_not_mark_no_sponsorship_required_red() -> None:
     )
 
     assert result.h1b != "red"
+
+
+def test_classifier_marks_front_intern_roles_green() -> None:
+    result = HeuristicClassifier().classify(
+        title="Proprietary Trading Intern (New York) – Summer 2027",
+        jd="Trading interns sit at the core of the firm and work on market-facing decisions.",
+        policy="",
+    )
+
+    assert result.front == "green"
+    assert result.exp == "green"
+
+
+def test_classifier_flags_dirty_titles_and_page_noise() -> None:
+    result = HeuristicClassifier().classify(
+        title="Asset Management Provides investment management solutions across all major asset classes.",
+        jd="Careers in Asset Management",
+        policy="",
+    )
+
+    assert result.front == "red"
+    assert "title_dirty" in result.flags
+    assert "page_noise" in result.flags

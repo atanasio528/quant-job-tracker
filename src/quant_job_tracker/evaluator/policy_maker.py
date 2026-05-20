@@ -6,7 +6,14 @@ def suggest_policy_updates(rows: list[dict[str, str]]) -> str:
         for row in rows
         if any(
             flag in row.get("flags", "")
-            for flag in ("not_job_page", "needs_better_adapter", "career_category", "seed_noise")
+            for flag in (
+                "not_job_page",
+                "needs_better_adapter",
+                "career_category",
+                "seed_noise",
+                "page_noise",
+                "title_dirty",
+            )
         )
     ]
     quant_dev_rows = [row for row in rows if "quant_dev_excluded" in row.get("flags", "")]

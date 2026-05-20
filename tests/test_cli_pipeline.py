@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import httpx
 from typer.testing import CliRunner
 
 from quant_job_tracker.crawler.adapters import JobCard
@@ -82,6 +83,64 @@ def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> 
         assert runs[1].jobs_evaluated == 0
 
 
+def test_eval_pending_repairs_dirty_titles_and_reevaluates(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    jd = "Senior Analyst, Equity Data Science | PanAgora Careers"
+    dirty_title = (
+        "Senior Analyst, Equity Data Science Summary: PanAgora seeks to integrate a Sr. "
+        "Analyst to work closely with the Alpha Research team. Read Post"
+    )
+    with create_session(db_path) as session:
+        company = Company(
+            name="PanAgora Asset Management",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        job = Job(
+            company_id=company.id,
+            company=company.name,
+            title=dirty_title,
+            loc="Unknown",
+            url="https://example.com/job/1",
+            source="official",
+            jd=jd,
+            jd_hash=hash_jd(jd),
+            status="live",
+        )
+        session.add(job)
+        session.flush()
+        session.add(
+            Eval(
+                job_id=job.id,
+                jd_hash=job.jd_hash,
+                front="red",
+                h1b="yellow",
+                exp="green",
+                score=50,
+                reason="old",
+                flags="title_dirty",
+                model="heuristic-v1",
+                policy_ver="v1",
+            )
+        )
+        session.commit()
+
+    result = runner.invoke(app, ["eval-pending", "--db", str(db_path)])
+
+    assert result.exit_code == 0
+    assert "Evaluated 1 jobs" in result.output
+    with create_session(db_path) as session:
+        job = session.query(Job).one()
+        assert job.title == "Senior Analyst, Equity Data Science"
+        assert session.query(Eval).count() == 2
+
+
 def test_crawl_command_fetches_filters_stores_and_records_run(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -154,7 +213,7 @@ def test_crawl_command_fetches_filters_stores_and_records_run(
         assert run.error is None
 
 
-def test_crawl_command_skips_known_blocked_career_pages(tmp_path: Path, monkeypatch) -> None:
+def test_crawl_command_breaks_out_blocked_career_pages(tmp_path: Path, monkeypatch) -> None:
     from quant_job_tracker import cli
 
     db_path = tmp_path / "qjt.sqlite3"
@@ -181,8 +240,41 @@ def test_crawl_command_skips_known_blocked_career_pages(tmp_path: Path, monkeypa
         company = session.query(Company).one()
         assert company.name == "Blocked Fund"
         run = session.query(Run).one()
-        assert run.status == "success"
-        assert run.error is None
+        assert run.status == "partial"
+        assert run.error is not None
+        assert "Bot crawling prohibited / 403" in run.error
+        assert "Blocked Fund: blocked by Cloudflare challenge" in run.error
+
+
+def test_crawl_command_breaks_out_404_seed_urls(tmp_path: Path, monkeypatch) -> None:
+    from quant_job_tracker import cli
+
+    db_path = tmp_path / "qjt.sqlite3"
+    seed = CompanySeed(
+        name="Missing Fund",
+        group="quant",
+        career_url="https://example.com/missing",
+        ats="generic",
+    )
+
+    class FakeAdapter:
+        def fetch_html(self, url: str) -> str:
+            request = httpx.Request("GET", url)
+            response = httpx.Response(404, request=request)
+            raise httpx.HTTPStatusError("not found", request=request, response=response)
+
+    monkeypatch.setattr(cli, "SEEDS", [seed])
+    monkeypatch.setattr(cli, "GenericAdapter", FakeAdapter)
+
+    result = runner.invoke(cli.app, ["crawl", "--db", str(db_path), "--limit", "1"])
+
+    assert result.exit_code == 0
+    with create_session(db_path) as session:
+        run = session.query(Run).one()
+        assert run.status == "partial"
+        assert run.error is not None
+        assert "Bad seed URL / 404" in run.error
+        assert "Missing Fund: 404 Not Found" in run.error
 
 
 def test_eval_pending_reuses_eval_for_unchanged_jd_after_recrawl(tmp_path: Path) -> None:

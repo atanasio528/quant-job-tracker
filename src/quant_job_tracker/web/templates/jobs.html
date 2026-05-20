@@ -1,18 +1,70 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Jobs</h1>
+<form class="toolbar" method="get" action="/">
+  <label>
+    Front
+    <select name="front">
+      {% for option in label_options %}
+        <option value="{{ option }}" {% if filters.front == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    H-1B
+    <select name="h1b">
+      {% for option in label_options %}
+        <option value="{{ option }}" {% if filters.h1b == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Exp
+    <select name="exp">
+      {% for option in label_options %}
+        <option value="{{ option }}" {% if filters.exp == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Status
+    <select name="status">
+      {% for option in status_options %}
+        <option value="{{ option }}" {% if filters.status == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Apply</button>
+  <a href="/">Reset</a>
+</form>
+
+<p class="muted">Showing {{ rows|length }} of {{ total_rows }} collected positions · page {{ page }} / {{ total_pages }}</p>
+<div class="pager">
+  {% if prev_query %}
+    <a href="/?{{ prev_query }}">Previous</a>
+  {% else %}
+    <span class="muted">Previous</span>
+  {% endif %}
+  {% if next_query %}
+    <a href="/?{{ next_query }}">Next</a>
+  {% else %}
+    <span class="muted">Next</span>
+  {% endif %}
+</div>
+
 <table>
   <thead>
     <tr>
-      <th>Company</th><th>Title</th><th>Location</th><th>App</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
+      <th>Company</th><th>Title</th><th>Location</th><th>Status</th><th>App</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
     </tr>
   </thead>
   <tbody>
   {% for row in rows %}
     <tr>
       <td>{{ row.job.company }}</td>
-      <td><a href="/jobs/{{ row.job.id }}">{{ row.job.title }}</a></td>
+      <td class="title"><a href="/jobs/{{ row.job.id }}">{{ row.job.title }}</a></td>
       <td>{{ row.job.loc }}</td>
+      <td>{{ row.job.status }}</td>
       <td>{{ row.application.app_status if row.application else "not_started" }}</td>
       {% if row.eval %}
         <td><span class="pill {{ row.eval.front }}">{{ row.eval.front }}</span></td>
@@ -27,4 +79,17 @@
   {% endfor %}
   </tbody>
 </table>
+
+<div class="pager">
+  {% if prev_query %}
+    <a href="/?{{ prev_query }}">Previous</a>
+  {% else %}
+    <span class="muted">Previous</span>
+  {% endif %}
+  {% if next_query %}
+    <a href="/?{{ next_query }}">Next</a>
+  {% else %}
+    <span class="muted">Next</span>
+  {% endif %}
+</div>
 {% endblock %}

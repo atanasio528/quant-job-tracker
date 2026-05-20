@@ -2,7 +2,7 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 
-from quant_job_tracker.crawler.adapters import JobCard
+from quant_job_tracker.crawler.adapters import JobCard, clean_stored_title
 from quant_job_tracker.crawler.seeds import CompanySeed
 from quant_job_tracker.db import create_session
 from quant_job_tracker.models import Company, Job
@@ -47,6 +47,7 @@ def upsert_crawled_job(
 ) -> None:
     now = datetime.utcnow()
     new_hash = hash_jd(jd)
+    title = clean_stored_title(card.title, jd)
     with create_session(db_path) as session:
         existing = session.query(Job).filter_by(url=card.url).one_or_none()
         if existing is None:
@@ -56,7 +57,7 @@ def upsert_crawled_job(
                 .one_or_none()
             )
         if existing:
-            existing.title = card.title
+            existing.title = title
             existing.loc = card.loc
             existing.url = card.url
             existing.jd = jd
@@ -70,7 +71,7 @@ def upsert_crawled_job(
                 Job(
                     company_id=company_id,
                     company=company,
-                    title=card.title,
+                    title=title,
                     loc=card.loc,
                     url=card.url,
                     source="official",
