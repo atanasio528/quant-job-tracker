@@ -10,6 +10,8 @@ from quant_job_tracker.models import Eval, Job
 from quant_job_tracker.policy import load_policy_bundle
 
 app = typer.Typer(name="qjt")
+EVAL_MODEL = "heuristic-v1"
+POLICY_VER = "v1"
 
 
 @app.command()
@@ -26,6 +28,19 @@ def eval_pending(db: Path = DEFAULT_DB_PATH) -> None:
         jobs = session.query(Job).filter(Job.status.in_(["new", "live"])).all()
         count = 0
         for job in jobs:
+            current_eval = (
+                session.query(Eval.id)
+                .filter(
+                    Eval.job_id == job.id,
+                    Eval.model == EVAL_MODEL,
+                    Eval.policy_ver == POLICY_VER,
+                    Eval.created_at >= job.last_seen,
+                )
+                .first()
+            )
+            if current_eval is not None:
+                continue
+
             result = classifier.classify(job.title, job.jd, policy)
             session.add(
                 Eval(
@@ -36,8 +51,8 @@ def eval_pending(db: Path = DEFAULT_DB_PATH) -> None:
                     score=result.score,
                     reason=result.reason,
                     flags=result.flags,
-                    model="heuristic-v1",
-                    policy_ver="v1",
+                    model=EVAL_MODEL,
+                    policy_ver=POLICY_VER,
                 )
             )
             count += 1

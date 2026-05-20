@@ -1,16 +1,76 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from typer.testing import CliRunner
+
 from quant_job_tracker.crawler.adapters import JobCard
 from quant_job_tracker.crawler.service import hash_jd, upsert_crawled_job
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import Company, Job
+from quant_job_tracker.models import Company, Eval, Job
+
+
+runner = CliRunner()
 
 
 def test_cli_app_imports() -> None:
     from quant_job_tracker.cli import app
 
     assert app.info.name == "qjt"
+
+
+def test_init_db_command_creates_sqlite_file(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+
+    result = runner.invoke(app, ["init-db", "--db", str(db_path)])
+
+    assert result.exit_code == 0
+    assert "Initialized" in result.output
+    assert db_path.exists()
+
+
+def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_result = runner.invoke(app, ["init-db", "--db", str(db_path)])
+    assert init_result.exit_code == 0
+
+    jd = "Alpha quant researcher role with predictive trading strategy work and H-1B sponsorship available."
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        session.add(
+            Job(
+                company_id=company.id,
+                company=company.name,
+                title="Quant Researcher",
+                loc="New York",
+                url="https://example.com/job/1",
+                source="official",
+                jd=jd,
+                jd_hash=hash_jd(jd),
+                status="new",
+            )
+        )
+        session.commit()
+
+    first = runner.invoke(app, ["eval-pending", "--db", str(db_path)])
+    second = runner.invoke(app, ["eval-pending", "--db", str(db_path)])
+
+    assert first.exit_code == 0
+    assert "Evaluated 1 jobs" in first.output
+    assert second.exit_code == 0
+    assert "Evaluated 0 jobs" in second.output
+    with create_session(db_path) as session:
+        assert session.query(Eval).count() == 1
 
 
 def test_upsert_crawled_job_creates_and_updates(tmp_path: Path) -> None:
