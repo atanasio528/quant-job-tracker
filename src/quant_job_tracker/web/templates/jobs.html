@@ -55,24 +55,24 @@
 <table>
   <thead>
     <tr>
-      <th>Company</th><th>Title</th><th>Official</th><th>Location</th><th>Status</th><th>App</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
+      <th>Company</th><th>Title</th><th>Location</th><th>Status</th><th>App</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
     </tr>
   </thead>
   <tbody>
   {% for row in rows %}
     <tr>
       <td>{{ row.job.company }}</td>
-      <td class="title"><a href="/jobs/{{ row.job.id }}">{{ row.job.title }}</a></td>
-      <td>
+      <td class="title">
         {% if row.official_url %}
-          <a href="{{ row.official_url }}">Open</a>
+          <a href="{{ row.official_url }}" target="_blank" rel="noopener noreferrer">{{ row.job.title }}</a>
         {% else %}
-          <span class="muted">unavailable</span>
+          {{ row.job.title }}
         {% endif %}
       </td>
       <td>{{ row.job.loc }}</td>
       <td>{{ row.job.status }}</td>
-      <td>{{ row.application.app_status if row.application else "not_started" }}</td>
+      {% set app_status = row.application.app_status if row.application else "not_started" %}
+      <td><a href="/jobs/{{ row.job.id }}">{{ app_status }}</a></td>
       {% if row.eval %}
         <td><span class="pill {{ row.eval.front }}">{{ row.eval.front }}</span></td>
         <td><span class="pill {{ row.eval.h1b }}">{{ row.eval.h1b }}</span></td>

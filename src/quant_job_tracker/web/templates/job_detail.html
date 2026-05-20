@@ -92,5 +92,20 @@
 {% endfor %}
 
 <h2>Stored JD</h2>
-<pre>{{ job.jd }}</pre>
+{% if jd_sections %}
+  <article class="jd-card">
+    {% for section in jd_sections %}
+      <section class="jd-section">
+        {% if section.heading %}
+          <h3 class="jd-heading">{{ section.heading }}</h3>
+        {% endif %}
+        {% for paragraph in section.paragraphs %}
+          <p>{{ paragraph }}</p>
+        {% endfor %}
+      </section>
+    {% endfor %}
+  </article>
+{% else %}
+  <p class="muted">No stored job description.</p>
+{% endif %}
 {% endblock %}

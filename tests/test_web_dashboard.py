@@ -82,15 +82,18 @@ def test_web_dashboard_lists_jobs_and_detail(tmp_path: Path) -> None:
     assert jobs_response.status_code == 200
     assert "Quant Researcher" in jobs_response.text
     assert "visa_unclear" in jobs_response.text
-    assert "Official" in jobs_response.text
+    assert "<th>Official</th>" not in jobs_response.text
     assert 'href="https://example.com/job/1"' in jobs_response.text
-    assert ">Open</a>" in jobs_response.text
+    assert f'href="/jobs/{job_id}">not_started</a>' in jobs_response.text
+    assert f'href="/jobs/{job_id}">Quant Researcher</a>' not in jobs_response.text
 
     detail_response = client.get(f"/jobs/{job_id}")
     assert detail_response.status_code == 200
     assert "Official posting" in detail_response.text
     assert "Strong front-office fit" in detail_response.text
     assert "Alpha research role" in detail_response.text
+    assert '<article class="jd-card">' in detail_response.text
+    assert "<pre>" not in detail_response.text
 
 
 def test_web_dashboard_filters_eval_fields_and_status(tmp_path: Path) -> None:
@@ -471,4 +474,49 @@ def test_jobs_table_blocks_javascript_official_url(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert 'href="javascript:alert(1)"' not in response.text
-    assert "unavailable" in response.text
+    assert "Quant Researcher" in response.text
+
+
+def test_job_detail_formats_stored_jd_with_sections(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Quant Researcher",
+            loc="New York",
+            url="https://example.com/job/1",
+            source="crawler",
+            jd=(
+                "Overview This role researches alpha signals. "
+                "Responsibilities Build predictive models. Test trading hypotheses. "
+                "Qualifications Python and statistics."
+            ),
+            jd_hash="abc",
+            status="new",
+        )
+        session.add(job)
+        session.commit()
+        job_id = job.id
+
+    client = TestClient(create_app(db_path))
+
+    response = client.get(f"/jobs/{job_id}")
+
+    assert response.status_code == 200
+    assert '<article class="jd-card">' in response.text
+    assert '<h3 class="jd-heading">Overview</h3>' in response.text
+    assert '<h3 class="jd-heading">Responsibilities</h3>' in response.text
+    assert '<h3 class="jd-heading">Qualifications</h3>' in response.text
+    assert "<pre>" not in response.text

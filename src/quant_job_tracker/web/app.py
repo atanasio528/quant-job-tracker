@@ -1,6 +1,8 @@
-from pathlib import Path
 from datetime import datetime
+from html import unescape
 from math import ceil
+from pathlib import Path
+import re
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -16,10 +18,33 @@ from quant_job_tracker.models import App, Eval, Job, Review, Run
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 ALLOWED_REVIEW_DECISIONS = {"approved", "pending", "rejected", "needs_review"}
-ALLOWED_APP_STATUSES = {"not_started", "ready", "applied", "interview", "rejected", "offer", "closed"}
+ALLOWED_APP_STATUSES = {
+    "not_started",
+    "ready",
+    "applied",
+    "interview",
+    "rejected",
+    "offer",
+    "closed",
+}
 LABEL_FILTERS = {"all", "green", "yellow", "red", "missing"}
 STATUS_FILTERS = {"all", "new", "live", "closed"}
 PAGE_SIZE = 50
+JD_SECTION_HEADINGS = (
+    "Preferred Qualifications",
+    "Basic Qualifications",
+    "Responsibilities",
+    "Qualifications",
+    "Requirements",
+    "What you'll do",
+    "What you’ll do",
+    "Who you are",
+    "About the role",
+    "Overview",
+    "Summary",
+    "Location",
+    "Benefits",
+)
 
 
 def safe_external_url(url: str) -> str | None:
@@ -123,6 +148,7 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
                     "reviews": reviews,
                     "review_decisions": sorted(ALLOWED_REVIEW_DECISIONS),
                     "official_url": safe_external_url(job.url),
+                    "jd_sections": format_jd_sections(job.jd),
                 },
             )
 
@@ -201,3 +227,57 @@ def _matches_eval_filter(eval: Eval | None, field: str, selected: str) -> bool:
 
 def _page_query(filters: dict[str, str], page: int) -> str:
     return urlencode({**filters, "page": page})
+
+
+def format_jd_sections(jd: str | None) -> list[dict[str, object]]:
+    text = unescape(" ".join((jd or "").split()))
+    if not text:
+        return []
+
+    marker_pattern = "|".join(
+        re.escape(heading) for heading in sorted(JD_SECTION_HEADINGS, key=len, reverse=True)
+    )
+    matches = list(re.finditer(rf"\b({marker_pattern})\b:?", text, flags=re.IGNORECASE))
+    if not matches:
+        return [{"heading": None, "paragraphs": split_readable_paragraphs(text)}]
+
+    sections: list[dict[str, object]] = []
+    intro = text[: matches[0].start()].strip(" :-")
+    if intro:
+        sections.append({"heading": None, "paragraphs": split_readable_paragraphs(intro)})
+
+    for index, match in enumerate(matches):
+        heading = canonical_jd_heading(match.group(1))
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[start:end].strip(" :-")
+        if body:
+            sections.append({"heading": heading, "paragraphs": split_readable_paragraphs(body)})
+
+    return sections
+
+
+def canonical_jd_heading(heading: str) -> str:
+    normalized = " ".join(heading.split()).lower()
+    for known in JD_SECTION_HEADINGS:
+        if normalized == known.lower():
+            return known.replace("’", "'")
+    return heading.title()
+
+
+def split_readable_paragraphs(text: str, max_chars: int = 650) -> list[str]:
+    sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", text)
+    paragraphs: list[str] = []
+    current = ""
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if current and len(current) + len(sentence) + 1 > max_chars:
+            paragraphs.append(current)
+            current = sentence
+        else:
+            current = f"{current} {sentence}".strip()
+    if current:
+        paragraphs.append(current)
+    return paragraphs or [text]
