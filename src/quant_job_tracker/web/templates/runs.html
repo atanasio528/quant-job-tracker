@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Run History</h1>
+<table>
+  <thead>
+    <tr>
+      <th>Time</th><th>Kind</th><th>Status</th><th>Found</th><th>Stored</th><th>Evaluated</th><th>Policy</th><th>Model</th><th>Error</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for run in rows %}
+    <tr>
+      <td>{{ run.created_at }}</td>
+      <td>{{ run.kind }}</td>
+      <td>{{ run.status }}</td>
+      <td>{{ run.jobs_found }}</td>
+      <td>{{ run.jobs_stored }}</td>
+      <td>{{ run.jobs_evaluated }}</td>
+      <td>{{ run.policy_ver }}</td>
+      <td>{{ run.model or "" }}</td>
+      <td class="muted">{{ run.error or "" }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

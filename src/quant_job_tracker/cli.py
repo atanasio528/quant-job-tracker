@@ -2,11 +2,13 @@ from pathlib import Path
 
 import typer
 import uvicorn
+from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
 from quant_job_tracker.db import create_session, init_db as create_tables
 from quant_job_tracker.evaluator.classifier import HeuristicClassifier
-from quant_job_tracker.models import Eval, Job
+from quant_job_tracker.evaluator.policy_maker import suggest_policy_updates
+from quant_job_tracker.models import Eval, Job, Run
 from quant_job_tracker.policy import load_policy_bundle
 
 app = typer.Typer(name="qjt")
@@ -56,8 +58,33 @@ def eval_pending(db: Path = DEFAULT_DB_PATH) -> None:
                 )
             )
             count += 1
+        session.add(
+            Run(
+                kind="eval",
+                status="success",
+                jobs_evaluated=count,
+                model=EVAL_MODEL,
+                policy_ver=POLICY_VER,
+            )
+        )
         session.commit()
     typer.echo(f"Evaluated {count} jobs")
+
+
+@app.command()
+def policy_report(db: Path = DEFAULT_DB_PATH) -> None:
+    with create_session(db) as session:
+        evals = session.query(Eval).order_by(desc(Eval.created_at)).limit(100).all()
+        rows = [
+            {
+                "title": eval.job.title,
+                "company": eval.job.company,
+                "front": eval.front,
+                "flags": eval.flags,
+            }
+            for eval in evals
+        ]
+    typer.echo(suggest_policy_updates(rows))
 
 
 @app.command()

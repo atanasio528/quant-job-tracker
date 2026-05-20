@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 from quant_job_tracker.crawler.adapters import JobCard
 from quant_job_tracker.crawler.service import hash_jd, upsert_crawled_job
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import Company, Eval, Job
+from quant_job_tracker.models import Company, Eval, Job, Run
 
 
 runner = CliRunner()
@@ -71,6 +71,63 @@ def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> 
     assert "Evaluated 0 jobs" in second.output
     with create_session(db_path) as session:
         assert session.query(Eval).count() == 1
+        runs = session.query(Run).order_by(Run.id).all()
+        assert len(runs) == 2
+        assert runs[0].kind == "eval"
+        assert runs[0].status == "success"
+        assert runs[0].jobs_evaluated == 1
+        assert runs[0].model == "heuristic-v1"
+        assert runs[0].policy_ver == "v1"
+        assert runs[1].jobs_evaluated == 0
+
+
+def test_policy_report_command_suggests_policy_updates(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Hudson River Trading",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Algorithm Developer",
+            loc="New York",
+            url="https://example.com/job/1",
+            source="official",
+            jd="Developer role",
+            jd_hash="abc",
+            status="new",
+        )
+        session.add(job)
+        session.flush()
+        session.add(
+            Eval(
+                job_id=job.id,
+                front="green",
+                h1b="yellow",
+                exp="green",
+                score=80,
+                reason="Alias fit",
+                flags="title_alias",
+                model="test",
+                policy_ver="v1",
+            )
+        )
+        session.commit()
+
+    result = runner.invoke(app, ["policy-report", "--db", str(db_path)])
+
+    assert result.exit_code == 0
+    assert "Hudson River Trading" in result.output
+    assert "title alias" in result.output.lower()
 
 
 def test_upsert_crawled_job_creates_and_updates(tmp_path: Path) -> None:

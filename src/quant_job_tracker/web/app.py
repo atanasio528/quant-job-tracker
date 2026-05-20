@@ -8,7 +8,7 @@ from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import Eval, Job
+from quant_job_tracker.models import Eval, Job, Run
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
@@ -53,5 +53,11 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
                 "job_detail.html",
                 {"job": job, "evals": evals, "official_url": safe_external_url(job.url)},
             )
+
+    @app.get("/runs", response_class=HTMLResponse)
+    def runs(request: Request):
+        with create_session(db_path) as session:
+            rows = session.query(Run).order_by(desc(Run.created_at)).limit(100).all()
+        return templates.TemplateResponse(request, "runs.html", {"rows": rows})
 
     return app

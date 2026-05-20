@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import Company, Eval, Job
+from quant_job_tracker.models import Company, Eval, Job, Run
 
 
 def test_web_dashboard_lists_jobs_and_detail(tmp_path: Path) -> None:
@@ -74,6 +74,36 @@ def test_missing_job_detail_returns_404(tmp_path: Path) -> None:
     response = client.get("/jobs/999")
 
     assert response.status_code == 404
+
+
+def test_run_history_lists_recent_runs(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        session.add(
+            Run(
+                kind="eval",
+                status="success",
+                jobs_evaluated=3,
+                policy_ver="v1",
+                model="heuristic-v1",
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app(db_path))
+
+    jobs_response = client.get("/")
+    assert jobs_response.status_code == 200
+    assert 'href="/runs"' in jobs_response.text
+
+    runs_response = client.get("/runs")
+    assert runs_response.status_code == 200
+    assert "Run History" in runs_response.text
+    assert "heuristic-v1" in runs_response.text
+    assert "<td>3</td>" in runs_response.text
 
 
 def test_job_detail_blocks_javascript_official_url(tmp_path: Path) -> None:
