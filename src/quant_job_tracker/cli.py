@@ -9,8 +9,14 @@ from sqlalchemy import desc
 from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
 from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter, clean_stored_title
 from quant_job_tracker.crawler.filters import keep_job_card
+from quant_job_tracker.crawler.job_sources import JOB_SOURCE_SEEDS
 from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
-from quant_job_tracker.crawler.service import close_stale_jobs, upsert_company_seed, upsert_crawled_job
+from quant_job_tracker.crawler.service import (
+    close_stale_jobs,
+    upsert_company_job_source,
+    upsert_company_seed,
+    upsert_crawled_job,
+)
 from quant_job_tracker.db import create_session, init_db as create_tables
 from quant_job_tracker.evaluator.classifier import HeuristicClassifier
 from quant_job_tracker.evaluator.policy_maker import suggest_policy_updates
@@ -112,6 +118,29 @@ def crawl(db: Path = DEFAULT_DB_PATH, limit: int | None = None) -> None:
         )
         session.commit()
     typer.echo(f"Crawled {companies_crawled} companies, found {jobs_found} jobs, stored {jobs_stored} jobs")
+
+
+@app.command()
+def collect_sources(db: Path = DEFAULT_DB_PATH) -> None:
+    create_tables(db)
+    for seed in SEEDS:
+        upsert_company_seed(db, seed)
+    count = 0
+    for source in JOB_SOURCE_SEEDS:
+        upsert_company_job_source(db, source)
+        count += 1
+    typer.echo(f"Stored {count} company job sources")
+
+
+@app.command()
+def sources(db: Path = DEFAULT_DB_PATH) -> None:
+    create_tables(db)
+    from quant_job_tracker.models import CompanyJobSource
+
+    with create_session(db) as session:
+        rows = session.query(CompanyJobSource).order_by(CompanyJobSource.company).all()
+        for row in rows:
+            typer.echo(f"{row.company}\t{row.source_type}\t{row.confidence}\t{row.source_url}")
 
 
 @app.command()

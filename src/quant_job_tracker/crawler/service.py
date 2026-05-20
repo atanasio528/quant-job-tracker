@@ -3,9 +3,10 @@ from hashlib import sha256
 from pathlib import Path
 
 from quant_job_tracker.crawler.adapters import JobCard, clean_stored_title
+from quant_job_tracker.crawler.job_sources import CompanyJobSourceSeed
 from quant_job_tracker.crawler.seeds import CompanySeed
 from quant_job_tracker.db import create_session
-from quant_job_tracker.models import Company, Job
+from quant_job_tracker.models import Company, CompanyJobSource, Job
 
 
 def hash_jd(jd: str) -> str:
@@ -35,6 +36,48 @@ def upsert_company_seed(db_path: Path, seed: CompanySeed) -> int:
         company_id = company.id
         session.commit()
         return company_id
+
+
+def upsert_company_job_source(db_path: Path, source: CompanyJobSourceSeed) -> None:
+    now = datetime.utcnow()
+    with create_session(db_path) as session:
+        company = session.query(Company).filter_by(name=source.company).one_or_none()
+        if company is None:
+            company = Company(
+                name=source.company,
+                group="unknown",
+                career_url=source.source_url,
+                ats=source.source_type,
+                active=True,
+            )
+            session.add(company)
+            session.flush()
+        row = (
+            session.query(CompanyJobSource)
+            .filter_by(company_id=company.id, source_url=source.source_url)
+            .one_or_none()
+        )
+        if row is None:
+            row = CompanyJobSource(
+                company_id=company.id,
+                company=company.name,
+                source_url=source.source_url,
+                source_type=source.source_type,
+                url_patterns="\n".join(source.url_patterns),
+                notes=source.notes,
+                confidence=source.confidence,
+                active=True,
+            )
+            session.add(row)
+        else:
+            row.company = company.name
+            row.source_type = source.source_type
+            row.url_patterns = "\n".join(source.url_patterns)
+            row.notes = source.notes
+            row.confidence = source.confidence
+            row.active = True
+            row.updated_at = now
+        session.commit()
 
 
 def upsert_crawled_job(

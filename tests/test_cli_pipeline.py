@@ -8,7 +8,7 @@ from quant_job_tracker.crawler.adapters import JobCard
 from quant_job_tracker.crawler.seeds import CompanySeed
 from quant_job_tracker.crawler.service import close_stale_jobs, hash_jd, upsert_crawled_job
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import Company, Eval, Job, Run
+from quant_job_tracker.models import Company, CompanyJobSource, Eval, Job, Run
 
 
 runner = CliRunner()
@@ -30,6 +30,35 @@ def test_init_db_command_creates_sqlite_file(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Initialized" in result.output
     assert db_path.exists()
+
+
+def test_collect_sources_command_stores_curated_job_sources(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+
+    result = runner.invoke(app, ["collect-sources", "--db", str(db_path)])
+
+    assert result.exit_code == 0
+    assert "Stored" in result.output
+    with create_session(db_path) as session:
+        assert session.query(CompanyJobSource).count() > 0
+        deshaw = session.query(CompanyJobSource).filter_by(company="D. E. Shaw").one()
+        assert deshaw.source_url == "https://www.deshaw.com/careers"
+        assert "/careers/" in deshaw.url_patterns
+
+
+def test_sources_command_lists_stored_job_sources(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    runner.invoke(app, ["collect-sources", "--db", str(db_path)])
+
+    result = runner.invoke(app, ["sources", "--db", str(db_path)])
+
+    assert result.exit_code == 0
+    assert "D. E. Shaw" in result.output
+    assert "official_careers" in result.output
 
 
 def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> None:

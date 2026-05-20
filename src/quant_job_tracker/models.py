@@ -20,6 +20,25 @@ class Company(Base):
     notes: Mapped[str | None] = mapped_column(default=None)
 
     jobs: Mapped[list["Job"]] = relationship(back_populates="company_ref")
+    job_sources: Mapped[list["CompanyJobSource"]] = relationship(back_populates="company_ref")
+
+
+class CompanyJobSource(Base):
+    __tablename__ = "company_job_sources"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    company: Mapped[str] = mapped_column(index=True)
+    source_url: Mapped[str] = mapped_column(index=True)
+    source_type: Mapped[str] = mapped_column(index=True)
+    url_patterns: Mapped[str]
+    notes: Mapped[str | None] = mapped_column(default=None)
+    confidence: Mapped[str] = mapped_column(default="medium", index=True)
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    company_ref: Mapped[Company] = relationship(back_populates="job_sources")
 
 
 class Job(Base):

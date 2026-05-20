@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import App, Company, Eval, Job
+from quant_job_tracker.models import App, Company, CompanyJobSource, Eval, Job
 
 
 def test_init_db_and_insert_job(tmp_path: Path) -> None:
@@ -112,3 +112,34 @@ def test_app_tracking_fields_persist_as_strings(tmp_path: Path) -> None:
         assert saved.deadline == "2026-06-01"
         assert saved.priority == "high"
         assert saved.applied_at == "2026-05-20"
+
+
+def test_company_job_source_persists_patterns(tmp_path: Path) -> None:
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="D. E. Shaw",
+            group="quant",
+            career_url="https://www.deshaw.com/careers",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        session.add(
+            CompanyJobSource(
+                company_id=company.id,
+                company=company.name,
+                source_url="https://www.deshaw.com/careers",
+                source_type="official_careers",
+                url_patterns="/careers/\n/recruit/jobs/",
+                notes="Official careers page.",
+                confidence="high",
+            )
+        )
+        session.commit()
+
+    with create_session(db_path) as session:
+        source = session.query(CompanyJobSource).one()
+        assert source.company == "D. E. Shaw"
+        assert "/careers/" in source.url_patterns
