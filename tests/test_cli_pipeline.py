@@ -419,6 +419,108 @@ def test_crawl_command_prunes_known_bad_job_urls_even_when_company_is_blocked(
         assert "Bot crawling prohibited / 403" in (run.error or "")
 
 
+def test_crawl_command_uses_interactive_browser_adapter(tmp_path: Path, monkeypatch) -> None:
+    from quant_job_tracker import cli
+
+    db_path = tmp_path / "qjt.sqlite3"
+    seed = CompanySeed(
+        name="Citadel",
+        group="multi_manager",
+        career_url="https://www.citadel.com/careers/open-opportunities/",
+        ats="generic",
+    )
+    events: list[str] = []
+
+    class FakeGenericAdapter:
+        pass
+
+    class FakeInteractiveBrowserAdapter:
+        def __init__(self, fallback: object) -> None:
+            events.append(f"fallback={fallback.__class__.__name__}")
+
+        def fetch_cards(self, url: str) -> list[JobCard]:
+            assert url == seed.career_url
+            return [
+                JobCard(
+                    title="Quantitative Researcher – PhD Intern (US)",
+                    loc="New York",
+                    url="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+                )
+            ]
+
+        def fetch_jd(self, url: str) -> str:
+            assert url.endswith("/quantitative-researcher-phd-intern-us/")
+            return "Quantitative researcher intern role with alpha research."
+
+        def close(self) -> None:
+            events.append("closed")
+
+    monkeypatch.setattr(cli, "SEEDS", [seed])
+    monkeypatch.setattr(cli, "GenericAdapter", FakeGenericAdapter)
+    monkeypatch.setattr(cli, "InteractiveBrowserAdapter", FakeInteractiveBrowserAdapter, raising=False)
+
+    result = runner.invoke(
+        cli.app, ["crawl", "--db", str(db_path), "--limit", "1", "--interactive-browser"]
+    )
+
+    assert result.exit_code == 0
+    assert "Crawled 1 companies, found 1 jobs, stored 1 jobs" in result.output
+    assert events == ["fallback=FakeGenericAdapter", "closed"]
+    with create_session(db_path) as session:
+        job = session.query(Job).one()
+        assert job.company == "Citadel"
+        assert job.title == "Quantitative Researcher – PhD Intern (US)"
+
+
+def test_import_saved_html_stores_jobs_from_official_listing(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    html_path = tmp_path / "citadel.html"
+    html_path.write_text(
+        """
+        <html><body>
+          <a href="/careers/details/quantitative-researcher-phd-intern-us/">
+            Quantitative Researcher – PhD Intern (US) Greenwich, Miami, New York Apply Now
+          </a>
+        </body></html>
+        """,
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "import-saved-html",
+            "--db",
+            str(db_path),
+            "--company",
+            "Citadel",
+            "--url",
+            "https://www.citadel.com/careers/open-opportunities/",
+            "--html",
+            str(html_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Imported 1 jobs from saved HTML" in result.output
+    with create_session(db_path) as session:
+        job = session.query(Job).one()
+        assert job.company == "Citadel"
+        assert job.title == "Quantitative Researcher – PhD Intern (US)"
+        assert job.loc == "Greenwich, Miami, New York"
+        assert job.url == (
+            "https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/"
+        )
+        assert "Imported from saved official HTML" in job.crawl_note
+        run = session.query(Run).one()
+        assert run.kind == "manual_import"
+        assert run.status == "success"
+        assert run.jobs_found == 1
+        assert run.jobs_stored == 1
+
+
 def test_crawl_command_breaks_out_404_seed_urls(tmp_path: Path, monkeypatch) -> None:
     from quant_job_tracker import cli
 

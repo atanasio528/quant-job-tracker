@@ -10,6 +10,7 @@ from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
 from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter, clean_stored_title
 from quant_job_tracker.crawler.categories import category_for_group
 from quant_job_tracker.crawler.filters import keep_job_card
+from quant_job_tracker.crawler.interactive_browser import InteractiveBrowserAdapter, html_to_text
 from quant_job_tracker.crawler.job_sources import JOB_SOURCE_SEEDS
 from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
 from quant_job_tracker.crawler.service import (
@@ -52,9 +53,13 @@ def init_db(db: Path = DEFAULT_DB_PATH) -> None:
 
 
 def _crawl_seeds(
-    db: Path, seeds: list[CompanySeed], limit: int | None = None
+    db: Path,
+    seeds: list[CompanySeed],
+    limit: int | None = None,
+    interactive_browser: bool = False,
 ) -> tuple[int, int, int, str | None]:
-    adapter = GenericAdapter()
+    base_adapter = GenericAdapter()
+    adapter = InteractiveBrowserAdapter(base_adapter) if interactive_browser else base_adapter
     selected_seeds = seeds[:limit] if limit is not None else seeds
     crawl_started = datetime.utcnow()
     successful_company_ids: list[int] = []
@@ -63,43 +68,48 @@ def _crawl_seeds(
     jobs_stored = 0
     issues: dict[str, list[str]] = {"bad_seed_url": [], "bot_blocked": [], "other": []}
 
-    for seed in selected_seeds:
-        try:
-            company_id = upsert_company_seed(db, seed)
-            prune_jobs_matching_url_patterns(
-                db, company_id, KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY.get(seed.name, ())
-            )
-            companies_crawled += 1
-            if hasattr(adapter, "fetch_cards"):
-                cards = adapter.fetch_cards(seed.career_url)
-            else:
-                html = adapter.fetch_html(seed.career_url)
-                cards = adapter.parse_cards(seed.career_url, html)
-            successful_company_ids.append(company_id)
-        except CareerPageBlockedError as exc:
-            issues["bot_blocked"].append(f"{seed.name}: {exc}")
-            continue
-        except Exception as exc:
-            _record_crawl_issue(issues, seed.name, exc)
-            continue
-
-        jobs_found += len(cards)
-        for card in cards:
-            keep, crawl_note = keep_job_card(seed.name, card.title, card.loc)
-            if not keep:
-                continue
+    try:
+        for seed in selected_seeds:
             try:
-                jd = adapter.fetch_jd(card.url)
-                upsert_crawled_job(db, company_id, seed.name, card, jd, crawl_note)
-                jobs_stored += 1
+                company_id = upsert_company_seed(db, seed)
+                prune_jobs_matching_url_patterns(
+                    db, company_id, KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY.get(seed.name, ())
+                )
+                companies_crawled += 1
+                if hasattr(adapter, "fetch_cards"):
+                    cards = adapter.fetch_cards(seed.career_url)
+                else:
+                    html = adapter.fetch_html(seed.career_url)
+                    cards = adapter.parse_cards(seed.career_url, html)
+                successful_company_ids.append(company_id)
             except CareerPageBlockedError as exc:
-                issues["bot_blocked"].append(f"{seed.name} {card.url}: {exc}")
+                issues["bot_blocked"].append(f"{seed.name}: {exc}")
                 continue
             except Exception as exc:
-                _record_crawl_issue(issues, f"{seed.name} {card.url}", exc)
+                _record_crawl_issue(issues, seed.name, exc)
+                continue
 
-    close_stale_jobs(db, successful_company_ids, crawl_started)
-    return companies_crawled, jobs_found, jobs_stored, _format_crawl_issues(issues)
+            jobs_found += len(cards)
+            for card in cards:
+                keep, crawl_note = keep_job_card(seed.name, card.title, card.loc)
+                if not keep:
+                    continue
+                try:
+                    jd = adapter.fetch_jd(card.url)
+                    upsert_crawled_job(db, company_id, seed.name, card, jd, crawl_note)
+                    jobs_stored += 1
+                except CareerPageBlockedError as exc:
+                    issues["bot_blocked"].append(f"{seed.name} {card.url}: {exc}")
+                    continue
+                except Exception as exc:
+                    _record_crawl_issue(issues, f"{seed.name} {card.url}", exc)
+
+        close_stale_jobs(db, successful_company_ids, crawl_started)
+        return companies_crawled, jobs_found, jobs_stored, _format_crawl_issues(issues)
+    finally:
+        close = getattr(adapter, "close", None)
+        if callable(close):
+            close()
 
 
 def _record_crawl_issue(issues: dict[str, list[str]], source: str, exc: Exception) -> None:
@@ -124,9 +134,19 @@ def _format_crawl_issues(issues: dict[str, list[str]]) -> str | None:
 
 
 @app.command()
-def crawl(db: Path = DEFAULT_DB_PATH, limit: int | None = None) -> None:
+def crawl(
+    db: Path = DEFAULT_DB_PATH,
+    limit: int | None = None,
+    interactive_browser: bool = typer.Option(
+        False,
+        "--interactive-browser",
+        help="Use a visible Selenium browser for supported provider-blocked official pages.",
+    ),
+) -> None:
     create_tables(db)
-    companies_crawled, jobs_found, jobs_stored, error = _crawl_seeds(db, SEEDS, limit)
+    companies_crawled, jobs_found, jobs_stored, error = _crawl_seeds(
+        db, SEEDS, limit, interactive_browser
+    )
     with create_session(db) as session:
         session.add(
             Run(
@@ -141,6 +161,59 @@ def crawl(db: Path = DEFAULT_DB_PATH, limit: int | None = None) -> None:
         )
         session.commit()
     typer.echo(f"Crawled {companies_crawled} companies, found {jobs_found} jobs, stored {jobs_stored} jobs")
+
+
+@app.command("import-saved-html")
+def import_saved_html(
+    db: Path = DEFAULT_DB_PATH,
+    company: str = typer.Option(..., "--company", help="Target company name."),
+    url: str = typer.Option(..., "--url", help="Official URL the HTML was saved from."),
+    html: Path = typer.Option(..., "--html", help="Saved HTML file from your normal browser."),
+) -> None:
+    create_tables(db)
+    seed = _seed_for_company(company, url)
+    company_id = upsert_company_seed(db, seed)
+    prune_jobs_matching_url_patterns(
+        db, company_id, KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY.get(seed.name, ())
+    )
+    html_source = html.read_text(encoding="utf-8")
+    adapter = GenericAdapter()
+    cards = adapter.parse_cards(url, html_source)
+    jd = html_to_text(html_source)
+    jobs_stored = 0
+    for card in cards:
+        keep, crawl_note = keep_job_card(seed.name, card.title, card.loc)
+        if not keep:
+            continue
+        upsert_crawled_job(
+            db,
+            company_id,
+            seed.name,
+            card,
+            jd,
+            f"Imported from saved official HTML. {crawl_note}",
+        )
+        jobs_stored += 1
+    with create_session(db) as session:
+        session.add(
+            Run(
+                kind="manual_import",
+                status="success",
+                jobs_found=len(cards),
+                jobs_stored=jobs_stored,
+                policy_ver=POLICY_VER,
+                model=None,
+            )
+        )
+        session.commit()
+    typer.echo(f"Imported {jobs_stored} jobs from saved HTML")
+
+
+def _seed_for_company(company: str, fallback_url: str) -> CompanySeed:
+    for seed in SEEDS:
+        if seed.name == company:
+            return seed
+    return CompanySeed(company, "unknown", fallback_url, "saved_html")
 
 
 @app.command()
