@@ -44,8 +44,12 @@ class HeuristicClassifier:
             "green card",
             "permanent resident",
             "no sponsorship",
+            "do not provide visa sponsorship",
+            "cannot provide visa sponsorship",
+            "will not provide visa sponsorship",
             "will not sponsor",
             "cannot sponsor",
+            "unable to sponsor",
         ]
         visa_red_exemptions = [
             "no sponsorship required",
