@@ -82,6 +82,9 @@ def test_web_dashboard_lists_jobs_and_detail(tmp_path: Path) -> None:
     assert jobs_response.status_code == 200
     assert "Quant Researcher" in jobs_response.text
     assert "visa_unclear" in jobs_response.text
+    assert "Official" in jobs_response.text
+    assert 'href="https://example.com/job/1"' in jobs_response.text
+    assert ">Open</a>" in jobs_response.text
 
     detail_response = client.get(f"/jobs/{job_id}")
     assert detail_response.status_code == 200
@@ -431,3 +434,41 @@ def test_job_detail_blocks_javascript_official_url(tmp_path: Path) -> None:
     assert response.status_code == 200
     assert 'href="javascript:alert(1)"' not in response.text
     assert "Official link unavailable" in response.text
+
+
+def test_jobs_table_blocks_javascript_official_url(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        session.add(
+            Job(
+                company_id=company.id,
+                company=company.name,
+                title="Quant Researcher",
+                loc="New York",
+                url="javascript:alert(1)",
+                source="crawler",
+                jd="Alpha research role",
+                jd_hash="abc",
+                status="new",
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app(db_path))
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'href="javascript:alert(1)"' not in response.text
+    assert "unavailable" in response.text

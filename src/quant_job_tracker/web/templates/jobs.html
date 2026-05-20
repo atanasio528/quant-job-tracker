@@ -55,7 +55,7 @@
 <table>
   <thead>
     <tr>
-      <th>Company</th><th>Title</th><th>Location</th><th>Status</th><th>App</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
+      <th>Company</th><th>Title</th><th>Official</th><th>Location</th><th>Status</th><th>App</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
     </tr>
   </thead>
   <tbody>
@@ -63,6 +63,13 @@
     <tr>
       <td>{{ row.job.company }}</td>
       <td class="title"><a href="/jobs/{{ row.job.id }}">{{ row.job.title }}</a></td>
+      <td>
+        {% if row.official_url %}
+          <a href="{{ row.official_url }}">Open</a>
+        {% else %}
+          <span class="muted">unavailable</span>
+        {% endif %}
+      </td>
       <td>{{ row.job.loc }}</td>
       <td>{{ row.job.status }}</td>
       <td>{{ row.application.app_status if row.application else "not_started" }}</td>

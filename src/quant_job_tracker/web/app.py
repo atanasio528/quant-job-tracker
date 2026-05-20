@@ -63,7 +63,14 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
                 if not _matches_eval_filter(latest, "exp", filters["exp"]):
                     continue
                 application = session.query(App).filter_by(job_id=job.id).one_or_none()
-                rows.append({"job": job, "eval": latest, "application": application})
+                rows.append(
+                    {
+                        "job": job,
+                        "eval": latest,
+                        "application": application,
+                        "official_url": safe_external_url(job.url),
+                    }
+                )
         total_rows = len(rows)
         total_pages = max(ceil(total_rows / PAGE_SIZE), 1)
         page = min(page, total_pages)
