@@ -1,4 +1,4 @@
-# Quant Job Crawler Design
+# Quant Job Tracker Design
 
 Date: 2026-05-20
 
@@ -286,19 +286,19 @@ Shows crawler and evaluator activity:
 The dedicated local project directory is:
 
 ```text
-/Users/yj2860/Documents/quant-job-crawler
+/Users/yj2860/Documents/quant-job-tracker
 ```
 
 The target GitHub repository should be private by default because the app may contain personal application notes and locally stored job data. The recommended repository name is:
 
 ```text
-9905strange/quant-job-crawler
+9905strange/quant-job-tracker
 ```
 
 If the repository already exists, set it as the local remote:
 
 ```bash
-git remote add origin https://github.com/9905strange/quant-job-crawler.git
+git remote add origin https://github.com/9905strange/quant-job-tracker.git
 ```
 
 If it does not exist yet, create it on GitHub first, then add the remote.
