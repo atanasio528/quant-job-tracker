@@ -37,6 +37,8 @@ class GenericAdapter:
             ):
                 continue
             href = link["href"].strip()
+            if not href:
+                continue
             if href.startswith("#"):
                 continue
             url = urljoin(base_url, href)

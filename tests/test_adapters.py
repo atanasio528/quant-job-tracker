@@ -41,6 +41,22 @@ def test_generic_adapter_ignores_non_http_links_with_relevant_keywords() -> None
     ]
 
 
+def test_generic_adapter_ignores_blank_hrefs_with_relevant_keywords() -> None:
+    html = """
+    <html><body>
+      <a href="">Quantitative Researcher</a>
+      <a href="   ">Quantitative Researcher</a>
+      <a href="/jobs/1">Quant Trader</a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+    cards = adapter.parse_cards("https://example.com/careers", html)
+
+    assert cards == [
+        JobCard(title="Quant Trader", loc="Unknown", url="https://example.com/jobs/1")
+    ]
+
+
 def test_generic_adapter_deduplicates_cards_by_absolute_url() -> None:
     html = """
     <html><body>
