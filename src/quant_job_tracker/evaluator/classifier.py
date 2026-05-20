@@ -12,7 +12,7 @@ class EvalResult(BaseModel):
 
 class HeuristicClassifier:
     def classify(self, title: str, jd: str, policy: str) -> EvalResult:
-        text = f"{title}\n{jd}\n{policy}".lower()
+        text = f"{title}\n{jd}".lower()
         front_green_terms = [
             "alpha",
             "quant researcher",
@@ -30,12 +30,25 @@ class HeuristicClassifier:
             "software engineer",
             "data engineer",
         ]
+        visa_green_terms = [
+            "sponsorship available",
+            "visa sponsorship",
+            "h-1b",
+            "h1b",
+            "cpt",
+            "opt",
+        ]
         visa_red_terms = [
             "us citizen",
             "u.s. citizen",
             "green card",
             "permanent resident",
             "no sponsorship",
+            "will not sponsor",
+            "cannot sponsor",
+        ]
+        visa_red_exemptions = [
+            "no sponsorship required",
         ]
         senior_terms = [
             "vp ",
@@ -53,7 +66,15 @@ class HeuristicClassifier:
         if any(term in text for term in front_red_terms):
             front = "red"
 
-        h1b = "red" if any(term in text for term in visa_red_terms) else "yellow"
+        has_visa_red = any(term in text for term in visa_red_terms) and not any(
+            term in text for term in visa_red_exemptions
+        )
+        if has_visa_red:
+            h1b = "red"
+        elif any(term in text for term in visa_green_terms):
+            h1b = "green"
+        else:
+            h1b = "yellow"
         exp = "red" if any(term in text for term in senior_terms) else "green"
 
         score = 50
