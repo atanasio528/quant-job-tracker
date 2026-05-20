@@ -13,6 +13,38 @@ def test_classifier_marks_front_quant_green() -> None:
     assert result.score >= 70
 
 
+def test_classifier_policy_alias_can_boost_front_with_supportive_jd_evidence() -> None:
+    result = HeuristicClassifier().classify(
+        title="Algorithm Developer",
+        jd="Build alpha signals.",
+        policy="Hudson River Trading: Algorithm Developer can be front quant.",
+    )
+
+    assert result.front == "green"
+    assert "title_alias" in result.flags
+
+
+def test_classifier_policy_alias_boosts_front_without_policy_text_as_evidence() -> None:
+    result = HeuristicClassifier().classify(
+        title="Algorithm Developer",
+        jd="Build signal research.",
+        policy="Hudson River Trading: Algorithm Developer can be front quant.",
+    )
+
+    assert result.front == "green"
+    assert "title_alias" in result.flags
+
+
+def test_classifier_policy_alias_does_not_boost_front_without_supportive_jd_evidence() -> None:
+    result = HeuristicClassifier().classify(
+        title="Algorithm Developer",
+        jd="Internal tooling role.",
+        policy="Hudson River Trading: Algorithm Developer can be front quant.",
+    )
+
+    assert result.front != "green"
+
+
 def test_classifier_marks_green_card_requirement_red() -> None:
     result = HeuristicClassifier().classify(
         title="Quant Researcher",

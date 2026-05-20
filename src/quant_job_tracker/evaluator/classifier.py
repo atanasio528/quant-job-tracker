@@ -1,6 +1,16 @@
 from pydantic import BaseModel, Field
 
 
+FRONT_ALIAS_SUPPORT_TERMS = [
+    "alpha",
+    "predictive",
+    "trading strategy",
+    "quant researcher",
+    "signal",
+    "systematic",
+]
+
+
 class EvalResult(BaseModel):
     front: str
     h1b: str
@@ -65,7 +75,15 @@ class HeuristicClassifier:
             "5+ years",
         ]
 
+        title_lower = title.lower()
+        jd_lower = jd.lower()
+        policy_lower = policy.lower()
+        has_policy_title_alias = _policy_allows_front_alias(title_lower, policy_lower)
+        has_front_alias_support = any(term in jd_lower for term in FRONT_ALIAS_SUPPORT_TERMS)
+
         front = "green" if any(term in text for term in front_green_terms) else "red"
+        if front == "red" and has_policy_title_alias and has_front_alias_support:
+            front = "green"
         if any(term in text for term in front_red_terms):
             front = "red"
 
@@ -94,7 +112,7 @@ class HeuristicClassifier:
             flags.append("visa_unclear")
         if exp == "red":
             flags.append("senior")
-        if "algorithm developer" in title.lower():
+        if has_policy_title_alias:
             flags.append("title_alias")
 
         return EvalResult(
@@ -105,3 +123,11 @@ class HeuristicClassifier:
             reason=f"front={front}, h1b={h1b}, exp={exp} based on title and JD evidence",
             flags=",".join(flags),
         )
+
+
+def _policy_allows_front_alias(title_lower: str, policy_lower: str) -> bool:
+    return (
+        "algorithm developer" in title_lower
+        and "algorithm developer" in policy_lower
+        and "front quant" in policy_lower
+    )
