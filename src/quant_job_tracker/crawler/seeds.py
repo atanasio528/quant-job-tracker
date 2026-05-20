@@ -33,19 +33,20 @@ SEEDS: list[CompanySeed] = [
         "https://www.citadelsecurities.com/careers/open-opportunities/",
         "generic",
     ),
-    CompanySeed("Point72", "multi_manager", "https://point72.com/careers/", "generic"),
+    CompanySeed("Point72", "multi_manager", "https://careers.point72.com/", "generic"),
     CompanySeed(
         "Cubist Systematic Strategies",
         "quant_hedge_fund",
-        "https://point72.com/cubist/careers/",
+        "https://point72.com/cubist/",
         "generic",
+        "Official Cubist page; jobs may be listed under Point72 careers.",
     ),
     CompanySeed("Millennium Management", "multi_manager", "https://www.mlp.com/careers/", "generic"),
     CompanySeed("Balyasny Asset Management", "multi_manager", "https://www.bamfunds.com/careers/", "generic"),
     CompanySeed(
         "Squarepoint Capital",
         "quant_hedge_fund",
-        "https://www.squarepoint-capital.com/careers",
+        "https://www.squarepoint-capital.com/open-opportunities",
         "generic",
     ),
     CompanySeed(

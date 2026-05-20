@@ -13,6 +13,12 @@ def test_reject_obvious_noise() -> None:
     assert "compliance" in note
 
 
+def test_keep_mixed_noise_and_relevant_signal() -> None:
+    keep, note = keep_job_card("Point72", "Software Engineer, Macro Quant Analytics", "New York")
+    assert keep is True
+    assert "relevant" in note or "ambiguous" in note
+
+
 def test_reject_wrong_location() -> None:
     keep, note = keep_job_card("Jane Street", "Quantitative Trader", "London")
     assert keep is False
@@ -23,3 +29,9 @@ def test_keep_ambiguous_research_role() -> None:
     keep, note = keep_job_card("Point72", "Research Analyst", "New York")
     assert keep is True
     assert "ambiguous" in note
+
+
+def test_reject_human_resources_noise_without_bare_hr_substring() -> None:
+    keep, note = keep_job_card("Some Firm", "Human Resources Analyst", "New York")
+    assert keep is False
+    assert "human resources" in note

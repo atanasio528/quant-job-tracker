@@ -20,11 +20,11 @@ NOISE_TERMS = {
     "devops",
     "facilities",
     "human resources",
-    "hr ",
     "legal",
     "model risk",
     "office manager",
     "operations",
+    "recruit",
     "recruiter",
     "risk management",
     "sales",
@@ -53,11 +53,12 @@ def keep_job_card(company: str, title: str, loc: str) -> tuple[bool, str]:
     if not any(term in loc_l for term in TARGET_LOCATION_TERMS):
         return False, "rejected: location outside target US markets"
 
+    has_relevant_signal = any(term in title_l for term in AMBIGUOUS_KEEP_TERMS)
+    if has_relevant_signal:
+        return True, "kept: ambiguous or relevant quant/trading/research signal"
+
     for term in NOISE_TERMS:
         if term in title_l:
             return False, f"rejected: obvious noise term '{term}'"
-
-    if any(term in title_l for term in AMBIGUOUS_KEEP_TERMS):
-        return True, "kept: ambiguous or relevant quant/trading/research signal"
 
     return True, "kept: broad crawler policy preserves non-noise roles for evaluator"
