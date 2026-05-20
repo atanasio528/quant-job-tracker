@@ -75,6 +75,26 @@ def test_classifier_marks_cannot_provide_visa_sponsorship_red() -> None:
     assert result.h1b == "red"
 
 
+def test_classifier_marks_visa_sponsorship_not_available_red() -> None:
+    result = HeuristicClassifier().classify(
+        title="Quant Researcher",
+        jd="Visa sponsorship is not available for this role.",
+        policy="",
+    )
+
+    assert result.h1b == "red"
+
+
+def test_classifier_keeps_explicit_non_sponsorship_red_with_harmless_phrase() -> None:
+    result = HeuristicClassifier().classify(
+        title="Quant Researcher",
+        jd="We cannot provide visa sponsorship. No sponsorship required to apply.",
+        policy="",
+    )
+
+    assert result.h1b == "red"
+
+
 def test_classifier_does_not_mark_no_sponsorship_required_red() -> None:
     result = HeuristicClassifier().classify(
         title="Quant Researcher",

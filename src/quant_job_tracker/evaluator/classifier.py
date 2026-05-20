@@ -43,16 +43,15 @@ class HeuristicClassifier:
             "u.s. citizen",
             "green card",
             "permanent resident",
-            "no sponsorship",
+            "visa sponsorship is not available",
+            "sponsorship is not available",
             "do not provide visa sponsorship",
             "cannot provide visa sponsorship",
             "will not provide visa sponsorship",
             "will not sponsor",
             "cannot sponsor",
             "unable to sponsor",
-        ]
-        visa_red_exemptions = [
-            "no sponsorship required",
+            "no visa sponsorship",
         ]
         senior_terms = [
             "vp ",
@@ -70,9 +69,9 @@ class HeuristicClassifier:
         if any(term in text for term in front_red_terms):
             front = "red"
 
-        has_visa_red = any(term in text for term in visa_red_terms) and not any(
-            term in text for term in visa_red_exemptions
-        )
+        has_visa_red = any(term in text for term in visa_red_terms)
+        if not has_visa_red and "no sponsorship required" not in text:
+            has_visa_red = "no sponsorship" in text
         if has_visa_red:
             h1b = "red"
         elif any(term in text for term in visa_green_terms):
