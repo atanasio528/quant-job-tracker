@@ -3,7 +3,33 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from quant_job_tracker.db import create_session, init_db
-from quant_job_tracker.models import Company, Eval, Job, Run
+from quant_job_tracker.models import App, Company, Eval, Job, Review, Run
+
+
+def add_test_job(db_path: Path) -> int:
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Quant Researcher",
+            loc="New York",
+            url="https://example.com/job/1",
+            source="official",
+            jd="Alpha research role",
+            jd_hash="abc",
+            status="new",
+        )
+        session.add(job)
+        session.commit()
+        return job.id
 
 
 def test_web_dashboard_lists_jobs_and_detail(tmp_path: Path) -> None:
@@ -75,6 +101,103 @@ def test_missing_job_detail_returns_404(tmp_path: Path) -> None:
     response = client.get("/jobs/999")
 
     assert response.status_code == 404
+
+
+def test_post_review_creates_review_and_detail_shows_it(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    job_id = add_test_job(db_path)
+
+    client = TestClient(create_app(db_path), follow_redirects=False)
+
+    response = client.post(
+        f"/jobs/{job_id}/review",
+        data={"decision": "approve", "note": "Looks worth applying."},
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/jobs/{job_id}"
+    with create_session(db_path) as session:
+        review = session.query(Review).one()
+        assert review.job_id == job_id
+        assert review.decision == "approve"
+        assert review.note == "Looks worth applying."
+        assert review.reviewer == "user"
+
+    detail_response = TestClient(create_app(db_path)).get(f"/jobs/{job_id}")
+    assert detail_response.status_code == 200
+    assert "approve" in detail_response.text
+    assert "Looks worth applying." in detail_response.text
+
+
+def test_post_application_creates_updates_app_and_detail_shows_it(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    job_id = add_test_job(db_path)
+
+    client = TestClient(create_app(db_path), follow_redirects=False)
+
+    create_response = client.post(
+        f"/jobs/{job_id}/application",
+        data={
+            "app_status": "ready",
+            "deadline": "2026-06-01",
+            "priority": "high",
+            "note": "Tailor resume first.",
+        },
+    )
+    update_response = client.post(
+        f"/jobs/{job_id}/application",
+        data={
+            "app_status": "applied",
+            "deadline": "2026-06-03",
+            "priority": "top",
+            "note": "Submitted via portal.",
+        },
+    )
+
+    assert create_response.status_code == 303
+    assert update_response.status_code == 303
+    with create_session(db_path) as session:
+        app_row = session.query(App).one()
+        assert app_row.job_id == job_id
+        assert app_row.app_status == "applied"
+        assert app_row.deadline == "2026-06-03"
+        assert app_row.priority == "top"
+        assert app_row.note == "Submitted via portal."
+
+    detail_response = TestClient(create_app(db_path)).get(f"/jobs/{job_id}")
+    assert detail_response.status_code == 200
+    assert "selected>applied" in detail_response.text
+    assert 'value="2026-06-03"' in detail_response.text
+    assert 'value="top"' in detail_response.text
+    assert "Submitted via portal." in detail_response.text
+
+
+def test_post_review_and_application_reject_invalid_values(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    job_id = add_test_job(db_path)
+
+    client = TestClient(create_app(db_path), raise_server_exceptions=False)
+
+    review_response = client.post(
+        f"/jobs/{job_id}/review",
+        data={"decision": "maybe", "note": ""},
+    )
+    app_response = client.post(
+        f"/jobs/{job_id}/application",
+        data={"app_status": "ghosted", "deadline": "", "priority": "", "note": ""},
+    )
+
+    assert review_response.status_code == 400
+    assert app_response.status_code == 400
 
 
 def test_run_history_lists_recent_runs(tmp_path: Path) -> None:

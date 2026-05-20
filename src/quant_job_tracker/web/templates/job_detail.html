@@ -11,6 +11,75 @@
   {% endif %}
 </p>
 
+<h2>Application</h2>
+<form method="post" action="/jobs/{{ job.id }}/application">
+  <p>
+    <label>
+      Status
+      <select name="app_status">
+        {% for status in app_statuses %}
+          <option value="{{ status }}" {% if (application and application.app_status == status) or (not application and status == "not_started") %}selected{% endif %}>{{ status }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </p>
+  <p>
+    <label>
+      Deadline
+      <input name="deadline" value="{{ application.deadline if application and application.deadline else "" }}">
+    </label>
+  </p>
+  <p>
+    <label>
+      Priority
+      <input name="priority" value="{{ application.priority if application and application.priority else "" }}">
+    </label>
+  </p>
+  <p>
+    <label>
+      Note
+      <textarea name="note" rows="3">{{ application.note if application and application.note else "" }}</textarea>
+    </label>
+  </p>
+  <button type="submit">Save application</button>
+</form>
+
+<h2>Review</h2>
+<form method="post" action="/jobs/{{ job.id }}/review">
+  <p>
+    <label>
+      Decision
+      <select name="decision">
+        {% for decision in review_decisions %}
+          <option value="{{ decision }}">{{ decision }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </p>
+  <p>
+    <label>
+      Note
+      <textarea name="note" rows="3"></textarea>
+    </label>
+  </p>
+  <button type="submit">Save review</button>
+</form>
+
+{% if reviews %}
+  <h3>Review History</h3>
+  <ul>
+    {% for review in reviews %}
+      <li>
+        <strong>{{ review.decision }}</strong>
+        <span class="muted">{{ review.created_at }}</span>
+        {% if review.note %}
+          <div>{{ review.note }}</div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
 <h2>Evaluations</h2>
 {% for eval in evals %}
   <p>
