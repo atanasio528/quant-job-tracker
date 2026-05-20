@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import typer
@@ -8,7 +9,7 @@ from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
 from quant_job_tracker.crawler.adapters import GenericAdapter
 from quant_job_tracker.crawler.filters import keep_job_card
 from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
-from quant_job_tracker.crawler.service import upsert_company_seed, upsert_crawled_job
+from quant_job_tracker.crawler.service import close_stale_jobs, upsert_company_seed, upsert_crawled_job
 from quant_job_tracker.db import create_session, init_db as create_tables
 from quant_job_tracker.evaluator.classifier import HeuristicClassifier
 from quant_job_tracker.evaluator.policy_maker import suggest_policy_updates
@@ -26,9 +27,13 @@ def init_db(db: Path = DEFAULT_DB_PATH) -> None:
     typer.echo(f"Initialized {db}")
 
 
-def _crawl_seeds(db: Path, seeds: list[CompanySeed], limit: int | None = None) -> tuple[int, int, int, str | None]:
+def _crawl_seeds(
+    db: Path, seeds: list[CompanySeed], limit: int | None = None
+) -> tuple[int, int, int, str | None]:
     adapter = GenericAdapter()
     selected_seeds = seeds[:limit] if limit is not None else seeds
+    crawl_started = datetime.utcnow()
+    successful_company_ids: list[int] = []
     companies_crawled = 0
     jobs_found = 0
     jobs_stored = 0
@@ -40,6 +45,7 @@ def _crawl_seeds(db: Path, seeds: list[CompanySeed], limit: int | None = None) -
             companies_crawled += 1
             html = adapter.fetch_html(seed.career_url)
             cards = adapter.parse_cards(seed.career_url, html)
+            successful_company_ids.append(company_id)
         except Exception as exc:
             errors.append(f"{seed.name}: {exc}")
             continue
@@ -56,6 +62,7 @@ def _crawl_seeds(db: Path, seeds: list[CompanySeed], limit: int | None = None) -
             except Exception as exc:
                 errors.append(f"{seed.name} {card.url}: {exc}")
 
+    close_stale_jobs(db, successful_company_ids, crawl_started)
     return companies_crawled, jobs_found, jobs_stored, "\n".join(errors) if errors else None
 
 

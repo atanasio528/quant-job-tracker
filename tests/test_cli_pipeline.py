@@ -5,7 +5,7 @@ from typer.testing import CliRunner
 
 from quant_job_tracker.crawler.adapters import JobCard
 from quant_job_tracker.crawler.seeds import CompanySeed
-from quant_job_tracker.crawler.service import hash_jd, upsert_crawled_job
+from quant_job_tracker.crawler.service import close_stale_jobs, hash_jd, upsert_crawled_job
 from quant_job_tracker.db import create_session, init_db
 from quant_job_tracker.models import Company, Eval, Job, Run
 
@@ -365,3 +365,77 @@ def test_upsert_crawled_job_dedupes_same_company_by_jd_hash(tmp_path: Path) -> N
         other_company_job = jobs[1]
         assert other_company_job.company_id == other_company_id
         assert other_company_job.url == "https://other.example.com/job/1"
+
+
+def test_close_stale_jobs_closes_only_selected_company_jobs(tmp_path: Path) -> None:
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    cutoff = datetime.utcnow()
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        other_company = Company(
+            name="Other Fund",
+            group="quant",
+            career_url="https://other.example.com",
+            active=True,
+        )
+        session.add_all([company, other_company])
+        session.flush()
+        session.add_all(
+            [
+                Job(
+                    company_id=company.id,
+                    company="Test Fund",
+                    title="Old Quant Researcher",
+                    loc="New York",
+                    url="https://example.com/old",
+                    source="official",
+                    jd="old",
+                    jd_hash="old",
+                    status="live",
+                    last_seen=cutoff - timedelta(minutes=5),
+                ),
+                Job(
+                    company_id=company.id,
+                    company="Test Fund",
+                    title="Fresh Quant Researcher",
+                    loc="New York",
+                    url="https://example.com/fresh",
+                    source="official",
+                    jd="fresh",
+                    jd_hash="fresh",
+                    status="live",
+                    last_seen=cutoff + timedelta(minutes=5),
+                ),
+                Job(
+                    company_id=other_company.id,
+                    company="Other Fund",
+                    title="Other Quant Researcher",
+                    loc="New York",
+                    url="https://other.example.com/old",
+                    source="official",
+                    jd="other",
+                    jd_hash="other",
+                    status="live",
+                    last_seen=cutoff - timedelta(minutes=5),
+                ),
+            ]
+        )
+        session.commit()
+        company_id = company.id
+
+    closed = close_stale_jobs(db_path, [company_id], cutoff)
+
+    assert closed == 1
+    with create_session(db_path) as session:
+        statuses = {job.title: job.status for job in session.query(Job).all()}
+        assert statuses == {
+            "Old Quant Researcher": "closed",
+            "Fresh Quant Researcher": "live",
+            "Other Quant Researcher": "live",
+        }

@@ -83,3 +83,24 @@ def upsert_crawled_job(
                 )
             )
         session.commit()
+
+
+def close_stale_jobs(db_path: Path, company_ids: list[int], cutoff: datetime) -> int:
+    if not company_ids:
+        return 0
+    with create_session(db_path) as session:
+        jobs = (
+            session.query(Job)
+            .filter(
+                Job.company_id.in_(company_ids),
+                Job.status.in_(["new", "live"]),
+                Job.last_seen < cutoff,
+            )
+            .all()
+        )
+        for job in jobs:
+            job.status = "closed"
+            job.closed_at = cutoff
+        count = len(jobs)
+        session.commit()
+        return count

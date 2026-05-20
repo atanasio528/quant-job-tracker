@@ -18,7 +18,7 @@ class GenericAdapter:
         cards: list[JobCard] = []
         seen_urls: set[str] = set()
         for link in soup.find_all("a", href=True):
-            title = " ".join(link.get_text(" ", strip=True).split())
+            title = clean_card_title(link.get_text(" ", strip=True))
             if len(title) < 4:
                 continue
             title_l = title.lower()
@@ -27,6 +27,7 @@ class GenericAdapter:
                 for term in (
                     "quant",
                     "trader",
+                    "trading",
                     "research",
                     "algorithm",
                     "alpha",
@@ -64,3 +65,12 @@ class GenericAdapter:
         for tag in soup(["script", "style", "noscript"]):
             tag.decompose()
         return " ".join(soup.get_text(" ", strip=True).split())
+
+
+def clean_card_title(raw_title: str) -> str:
+    title = " ".join(raw_title.split())
+    if title.lower().startswith("icon "):
+        title = title[5:].strip()
+    if " : " in title:
+        title = title.split(" : ", 1)[0].strip()
+    return title

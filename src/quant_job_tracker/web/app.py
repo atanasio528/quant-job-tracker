@@ -32,7 +32,13 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
     def jobs(request: Request):
         with create_session(db_path) as session:
             rows = []
-            for job in session.query(Job).order_by(desc(Job.last_seen)).limit(200).all():
+            for job in (
+                session.query(Job)
+                .filter(Job.status.in_(["new", "live"]))
+                .order_by(desc(Job.last_seen))
+                .limit(200)
+                .all()
+            ):
                 latest = (
                     session.query(Eval)
                     .filter_by(job_id=job.id)

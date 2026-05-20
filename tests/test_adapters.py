@@ -97,6 +97,26 @@ def test_generic_adapter_deduplicates_fragment_variants() -> None:
     ]
 
 
+def test_generic_adapter_cleans_card_icon_and_preview_description() -> None:
+    html = """
+    <html><body>
+      <a href="/careers/proprietary-trading-intern-new-york-summer-2027-5731">
+        icon Proprietary Trading Intern (New York) – Summer 2027 : The D. E. Shaw group seeks talented individuals with unique perspectives to join the firm as proprietary trading interns.
+      </a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+    cards = adapter.parse_cards("https://www.deshaw.com/careers", html)
+
+    assert cards == [
+        JobCard(
+            title="Proprietary Trading Intern (New York) – Summer 2027",
+            loc="Unknown",
+            url="https://www.deshaw.com/careers/proprietary-trading-intern-new-york-summer-2027-5731",
+        )
+    ]
+
+
 @respx.mock
 def test_generic_adapter_fetches_jd() -> None:
     respx.get("https://example.com/jobs/1").mock(
