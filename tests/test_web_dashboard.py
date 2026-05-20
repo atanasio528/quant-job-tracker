@@ -132,6 +132,35 @@ def test_post_review_creates_review_and_detail_shows_it(tmp_path: Path) -> None:
     assert "Looks worth applying." in detail_response.text
 
 
+def test_post_pending_review_creates_review_and_detail_shows_option(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    job_id = add_test_job(db_path)
+
+    client = TestClient(create_app(db_path), follow_redirects=False)
+
+    detail_before = client.get(f"/jobs/{job_id}")
+    response = client.post(
+        f"/jobs/{job_id}/review",
+        data={"decision": "pending", "note": "Come back after sourcing deadline."},
+    )
+
+    assert detail_before.status_code == 200
+    assert '<option value="pending">pending</option>' in detail_before.text
+    assert response.status_code == 303
+    with create_session(db_path) as session:
+        review = session.query(Review).one()
+        assert review.decision == "pending"
+        assert review.note == "Come back after sourcing deadline."
+
+    detail_after = TestClient(create_app(db_path)).get(f"/jobs/{job_id}")
+    assert detail_after.status_code == 200
+    assert "pending" in detail_after.text
+    assert "Come back after sourcing deadline." in detail_after.text
+
+
 def test_post_application_creates_updates_app_and_detail_shows_it(tmp_path: Path) -> None:
     from quant_job_tracker.web.app import create_app
 

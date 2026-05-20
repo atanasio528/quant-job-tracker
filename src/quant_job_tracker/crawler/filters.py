@@ -33,6 +33,14 @@ NOISE_TERMS = {
     "tax",
 }
 
+SOFTWARE_ENGINEER_OVERRIDE_TERMS = {
+    "alpha",
+    "macro quant",
+    "quant analytics",
+    "systematic",
+    "trading strategy",
+}
+
 AMBIGUOUS_KEEP_TERMS = {
     "alpha",
     "algorithm",
@@ -55,14 +63,20 @@ def keep_job_card(company: str, title: str, loc: str) -> tuple[bool, str]:
         return False, "rejected: location outside target US markets"
 
     has_relevant_signal = any(term in title_l for term in AMBIGUOUS_KEEP_TERMS)
+
+    for term in NOISE_TERMS:
+        if term not in title_l:
+            continue
+        if term == "software engineer" and any(
+            override in title_l for override in SOFTWARE_ENGINEER_OVERRIDE_TERMS
+        ):
+            continue
+        return False, f"rejected: obvious noise term '{term}'"
+
     if location_unknown and has_relevant_signal:
         return True, "kept: unknown location kept for evaluator review"
 
     if has_relevant_signal:
         return True, "kept: ambiguous or relevant quant/trading/research signal"
-
-    for term in NOISE_TERMS:
-        if term in title_l:
-            return False, f"rejected: obvious noise term '{term}'"
 
     return True, "kept: broad crawler policy preserves non-noise roles for evaluator"

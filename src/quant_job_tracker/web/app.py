@@ -13,7 +13,7 @@ from quant_job_tracker.models import App, Eval, Job, Review, Run
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
-ALLOWED_REVIEW_DECISIONS = {"approved", "rejected", "needs_review"}
+ALLOWED_REVIEW_DECISIONS = {"approved", "pending", "rejected", "needs_review"}
 ALLOWED_APP_STATUSES = {"not_started", "ready", "applied", "interview", "rejected", "offer", "closed"}
 
 
