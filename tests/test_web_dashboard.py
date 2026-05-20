@@ -36,6 +36,7 @@ def test_web_dashboard_lists_jobs_and_detail(tmp_path: Path) -> None:
         session.add(
             Eval(
                 job_id=job.id,
+                jd_hash=job.jd_hash,
                 front="green",
                 h1b="yellow",
                 exp="green",

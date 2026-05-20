@@ -36,7 +36,7 @@ def eval_pending(db: Path = DEFAULT_DB_PATH) -> None:
                     Eval.job_id == job.id,
                     Eval.model == EVAL_MODEL,
                     Eval.policy_ver == POLICY_VER,
-                    Eval.created_at >= job.last_seen,
+                    Eval.jd_hash == job.jd_hash,
                 )
                 .first()
             )
@@ -47,6 +47,7 @@ def eval_pending(db: Path = DEFAULT_DB_PATH) -> None:
             session.add(
                 Eval(
                     job_id=job.id,
+                    jd_hash=job.jd_hash,
                     front=result.front,
                     h1b=result.h1b,
                     exp=result.exp,

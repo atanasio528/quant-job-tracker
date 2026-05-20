@@ -45,8 +45,8 @@ def test_eval_rows_are_append_only(tmp_path: Path) -> None:
         job = Job(company_id=company.id, company="Test", title="Quant Researcher", loc="New York", url="u", source="s", jd="jd", jd_hash="h", status="new")
         session.add(job)
         session.flush()
-        session.add(Eval(job_id=job.id, front="green", h1b="yellow", exp="green", score=82, reason="Good fit", flags="visa_unclear", model="test", policy_ver="v1"))
-        session.add(Eval(job_id=job.id, front="green", h1b="green", exp="green", score=90, reason="Updated", flags="", model="test", policy_ver="v2"))
+        session.add(Eval(job_id=job.id, jd_hash=job.jd_hash, front="green", h1b="yellow", exp="green", score=82, reason="Good fit", flags="visa_unclear", model="test", policy_ver="v1"))
+        session.add(Eval(job_id=job.id, jd_hash=job.jd_hash, front="green", h1b="green", exp="green", score=90, reason="Updated", flags="", model="test", policy_ver="v2"))
         session.commit()
 
     with create_session(db_path) as session:
@@ -61,6 +61,7 @@ def test_eval_requires_existing_job(tmp_path: Path) -> None:
         session.add(
             Eval(
                 job_id=999,
+                jd_hash="missing",
                 front="green",
                 h1b="yellow",
                 exp="green",

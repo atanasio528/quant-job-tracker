@@ -49,6 +49,7 @@ class Eval(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), index=True)
+    jd_hash: Mapped[str] = mapped_column(String(64), index=True)
     front: Mapped[str] = mapped_column(index=True)
     h1b: Mapped[str] = mapped_column(index=True)
     exp: Mapped[str] = mapped_column(index=True)

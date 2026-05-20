@@ -81,6 +81,60 @@ def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> 
         assert runs[1].jobs_evaluated == 0
 
 
+def test_eval_pending_reuses_eval_for_unchanged_jd_after_recrawl(tmp_path: Path) -> None:
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.commit()
+        company_id = company.id
+
+    card = JobCard(title="Quant Researcher", loc="New York", url="https://example.com/job/1")
+    jd = "Alpha quant researcher role with predictive trading strategy work and H-1B sponsorship available."
+    upsert_crawled_job(db_path, company_id, "Test Fund", card, jd, "first")
+
+    first = runner.invoke(app, ["eval-pending", "--db", str(db_path)])
+    assert first.exit_code == 0
+    assert "Evaluated 1 jobs" in first.output
+
+    with create_session(db_path) as session:
+        job = session.query(Job).one()
+        job.last_seen = datetime.utcnow() + timedelta(seconds=1)
+        session.commit()
+
+    unchanged = runner.invoke(app, ["eval-pending", "--db", str(db_path)])
+    assert unchanged.exit_code == 0
+    assert "Evaluated 0 jobs" in unchanged.output
+    with create_session(db_path) as session:
+        assert session.query(Eval).count() == 1
+        latest_run = session.query(Run).order_by(Run.id.desc()).first()
+        assert latest_run is not None
+        assert latest_run.jobs_evaluated == 0
+
+    upsert_crawled_job(
+        db_path,
+        company_id,
+        "Test Fund",
+        card,
+        "Updated Alpha quant researcher JD with portfolio construction research.",
+        "changed",
+    )
+    changed = runner.invoke(app, ["eval-pending", "--db", str(db_path)])
+
+    assert changed.exit_code == 0
+    assert "Evaluated 1 jobs" in changed.output
+    with create_session(db_path) as session:
+        assert session.query(Eval).count() == 2
+
+
 def test_policy_report_command_suggests_policy_updates(tmp_path: Path) -> None:
     from quant_job_tracker.cli import app
 
@@ -111,6 +165,7 @@ def test_policy_report_command_suggests_policy_updates(tmp_path: Path) -> None:
         session.add(
             Eval(
                 job_id=job.id,
+                jd_hash=job.jd_hash,
                 front="green",
                 h1b="yellow",
                 exp="green",
