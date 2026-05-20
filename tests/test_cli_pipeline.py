@@ -107,7 +107,7 @@ def test_crawl_command_fetches_filters_stores_and_records_run(
             return [
                 JobCard(
                     title="Quant Researcher",
-                    loc="New York",
+                    loc="Unknown",
                     url="https://example.com/jobs/quant",
                 ),
                 JobCard(
@@ -140,7 +140,7 @@ def test_crawl_command_fetches_filters_stores_and_records_run(
         job = session.query(Job).one()
         assert job.company_id == company.id
         assert job.title == "Quant Researcher"
-        assert job.loc == "New York"
+        assert job.loc == "Unknown"
         assert job.url == "https://example.com/jobs/quant"
         assert job.jd == "Alpha research role with systematic trading work."
 

@@ -114,7 +114,7 @@ def test_post_review_creates_review_and_detail_shows_it(tmp_path: Path) -> None:
 
     response = client.post(
         f"/jobs/{job_id}/review",
-        data={"decision": "approve", "note": "Looks worth applying."},
+        data={"decision": "approved", "note": "Looks worth applying."},
     )
 
     assert response.status_code == 303
@@ -122,13 +122,13 @@ def test_post_review_creates_review_and_detail_shows_it(tmp_path: Path) -> None:
     with create_session(db_path) as session:
         review = session.query(Review).one()
         assert review.job_id == job_id
-        assert review.decision == "approve"
+        assert review.decision == "approved"
         assert review.note == "Looks worth applying."
         assert review.reviewer == "user"
 
     detail_response = TestClient(create_app(db_path)).get(f"/jobs/{job_id}")
     assert detail_response.status_code == 200
-    assert "approve" in detail_response.text
+    assert "approved" in detail_response.text
     assert "Looks worth applying." in detail_response.text
 
 

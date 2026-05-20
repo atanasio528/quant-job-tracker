@@ -48,12 +48,16 @@ AMBIGUOUS_KEEP_TERMS = {
 
 def keep_job_card(company: str, title: str, loc: str) -> tuple[bool, str]:
     title_l = title.lower()
-    loc_l = loc.lower()
+    loc_l = loc.strip().lower()
 
-    if not any(term in loc_l for term in TARGET_LOCATION_TERMS):
+    location_unknown = loc_l in {"", "unknown"}
+    if not location_unknown and not any(term in loc_l for term in TARGET_LOCATION_TERMS):
         return False, "rejected: location outside target US markets"
 
     has_relevant_signal = any(term in title_l for term in AMBIGUOUS_KEEP_TERMS)
+    if location_unknown and has_relevant_signal:
+        return True, "kept: unknown location kept for evaluator review"
+
     if has_relevant_signal:
         return True, "kept: ambiguous or relevant quant/trading/research signal"
 

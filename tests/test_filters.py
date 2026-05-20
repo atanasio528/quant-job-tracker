@@ -25,6 +25,20 @@ def test_reject_wrong_location() -> None:
     assert "location" in note
 
 
+def test_keep_unknown_location_for_evaluator_review() -> None:
+    keep, note = keep_job_card("Some Fund", "Quant Researcher", "Unknown")
+    assert keep is True
+    assert "unknown location" in note
+    assert "evaluator review" in note
+
+
+def test_keep_blank_location_for_evaluator_review() -> None:
+    keep, note = keep_job_card("Some Fund", "Systematic Trader", "")
+    assert keep is True
+    assert "unknown location" in note
+    assert "evaluator review" in note
+
+
 def test_keep_ambiguous_research_role() -> None:
     keep, note = keep_job_card("Point72", "Research Analyst", "New York")
     assert keep is True
