@@ -1,0 +1,50 @@
+from datetime import datetime
+from hashlib import sha256
+from pathlib import Path
+
+from quant_job_tracker.crawler.adapters import JobCard
+from quant_job_tracker.db import create_session
+from quant_job_tracker.models import Job
+
+
+def hash_jd(jd: str) -> str:
+    return sha256(jd.encode("utf-8")).hexdigest()
+
+
+def upsert_crawled_job(
+    db_path: Path,
+    company_id: int,
+    company: str,
+    card: JobCard,
+    jd: str,
+    crawl_note: str,
+) -> None:
+    now = datetime.utcnow()
+    with create_session(db_path) as session:
+        existing = session.query(Job).filter_by(url=card.url).one_or_none()
+        if existing:
+            existing.title = card.title
+            existing.loc = card.loc
+            existing.jd = jd
+            existing.jd_hash = hash_jd(jd)
+            existing.status = "live"
+            existing.last_seen = now
+            existing.crawl_note = crawl_note
+        else:
+            session.add(
+                Job(
+                    company_id=company_id,
+                    company=company,
+                    title=card.title,
+                    loc=card.loc,
+                    url=card.url,
+                    source="official",
+                    jd=jd,
+                    jd_hash=hash_jd(jd),
+                    status="new",
+                    first_seen=now,
+                    last_seen=now,
+                    crawl_note=crawl_note,
+                )
+            )
+        session.commit()
