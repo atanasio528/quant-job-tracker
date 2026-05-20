@@ -7,6 +7,12 @@ from quant_job_tracker.db import create_session, init_db
 from quant_job_tracker.models import Company, Job
 
 
+def test_cli_app_imports() -> None:
+    from quant_job_tracker.cli import app
+
+    assert app.info.name == "qjt"
+
+
 def test_upsert_crawled_job_creates_and_updates(tmp_path: Path) -> None:
     db_path = tmp_path / "qjt.sqlite3"
     init_db(db_path)
