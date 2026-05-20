@@ -4,6 +4,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from quant_job_tracker.crawler.adapters import JobCard
+from quant_job_tracker.crawler.seeds import CompanySeed
 from quant_job_tracker.crawler.service import hash_jd, upsert_crawled_job
 from quant_job_tracker.db import create_session, init_db
 from quant_job_tracker.models import Company, Eval, Job, Run
@@ -79,6 +80,78 @@ def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> 
         assert runs[0].model == "heuristic-v1"
         assert runs[0].policy_ver == "v1"
         assert runs[1].jobs_evaluated == 0
+
+
+def test_crawl_command_fetches_filters_stores_and_records_run(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from quant_job_tracker import cli
+
+    db_path = tmp_path / "qjt.sqlite3"
+    seed = CompanySeed(
+        name="Test Fund",
+        group="quant",
+        career_url="https://example.com/careers",
+        ats="generic",
+        notes="seed note",
+    )
+
+    class FakeAdapter:
+        def fetch_html(self, url: str) -> str:
+            assert url == seed.career_url
+            return "<html>careers</html>"
+
+        def parse_cards(self, base_url: str, html: str) -> list[JobCard]:
+            assert base_url == seed.career_url
+            assert html == "<html>careers</html>"
+            return [
+                JobCard(
+                    title="Quant Researcher",
+                    loc="New York",
+                    url="https://example.com/jobs/quant",
+                ),
+                JobCard(
+                    title="Quant Researcher",
+                    loc="London",
+                    url="https://example.com/jobs/london",
+                ),
+            ]
+
+        def fetch_jd(self, url: str) -> str:
+            assert url == "https://example.com/jobs/quant"
+            return "Alpha research role with systematic trading work."
+
+    monkeypatch.setattr(cli, "SEEDS", [seed])
+    monkeypatch.setattr(cli, "GenericAdapter", FakeAdapter)
+
+    result = runner.invoke(cli.app, ["crawl", "--db", str(db_path), "--limit", "1"])
+
+    assert result.exit_code == 0
+    assert "Crawled 1 companies, found 2 jobs, stored 1 jobs" in result.output
+    with create_session(db_path) as session:
+        company = session.query(Company).one()
+        assert company.name == "Test Fund"
+        assert company.group == "quant"
+        assert company.career_url == seed.career_url
+        assert company.ats == "generic"
+        assert company.active is True
+        assert company.notes == "seed note"
+
+        job = session.query(Job).one()
+        assert job.company_id == company.id
+        assert job.title == "Quant Researcher"
+        assert job.loc == "New York"
+        assert job.url == "https://example.com/jobs/quant"
+        assert job.jd == "Alpha research role with systematic trading work."
+
+        run = session.query(Run).one()
+        assert run.kind == "crawl"
+        assert run.status == "success"
+        assert run.jobs_found == 2
+        assert run.jobs_stored == 1
+        assert run.policy_ver == "v1"
+        assert run.model is None
+        assert run.error is None
 
 
 def test_eval_pending_reuses_eval_for_unchanged_jd_after_recrawl(tmp_path: Path) -> None:

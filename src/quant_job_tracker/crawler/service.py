@@ -3,12 +3,38 @@ from hashlib import sha256
 from pathlib import Path
 
 from quant_job_tracker.crawler.adapters import JobCard
+from quant_job_tracker.crawler.seeds import CompanySeed
 from quant_job_tracker.db import create_session
-from quant_job_tracker.models import Job
+from quant_job_tracker.models import Company, Job
 
 
 def hash_jd(jd: str) -> str:
     return sha256(jd.encode("utf-8")).hexdigest()
+
+
+def upsert_company_seed(db_path: Path, seed: CompanySeed) -> int:
+    with create_session(db_path) as session:
+        company = session.query(Company).filter_by(name=seed.name).one_or_none()
+        if company is None:
+            company = Company(
+                name=seed.name,
+                group=seed.group,
+                career_url=seed.career_url,
+                ats=seed.ats,
+                active=True,
+                notes=seed.notes,
+            )
+            session.add(company)
+        else:
+            company.group = seed.group
+            company.career_url = seed.career_url
+            company.ats = seed.ats
+            company.active = True
+            company.notes = seed.notes
+        session.flush()
+        company_id = company.id
+        session.commit()
+        return company_id
 
 
 def upsert_crawled_job(

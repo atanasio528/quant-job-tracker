@@ -5,6 +5,10 @@ import uvicorn
 from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
+from quant_job_tracker.crawler.adapters import GenericAdapter
+from quant_job_tracker.crawler.filters import keep_job_card
+from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
+from quant_job_tracker.crawler.service import upsert_company_seed, upsert_crawled_job
 from quant_job_tracker.db import create_session, init_db as create_tables
 from quant_job_tracker.evaluator.classifier import HeuristicClassifier
 from quant_job_tracker.evaluator.policy_maker import suggest_policy_updates
@@ -20,6 +24,59 @@ POLICY_VER = "v1"
 def init_db(db: Path = DEFAULT_DB_PATH) -> None:
     create_tables(db)
     typer.echo(f"Initialized {db}")
+
+
+def _crawl_seeds(db: Path, seeds: list[CompanySeed], limit: int | None = None) -> tuple[int, int, int, str | None]:
+    adapter = GenericAdapter()
+    selected_seeds = seeds[:limit] if limit is not None else seeds
+    companies_crawled = 0
+    jobs_found = 0
+    jobs_stored = 0
+    errors: list[str] = []
+
+    for seed in selected_seeds:
+        try:
+            company_id = upsert_company_seed(db, seed)
+            companies_crawled += 1
+            html = adapter.fetch_html(seed.career_url)
+            cards = adapter.parse_cards(seed.career_url, html)
+        except Exception as exc:
+            errors.append(f"{seed.name}: {exc}")
+            continue
+
+        jobs_found += len(cards)
+        for card in cards:
+            keep, crawl_note = keep_job_card(seed.name, card.title, card.loc)
+            if not keep:
+                continue
+            try:
+                jd = adapter.fetch_jd(card.url)
+                upsert_crawled_job(db, company_id, seed.name, card, jd, crawl_note)
+                jobs_stored += 1
+            except Exception as exc:
+                errors.append(f"{seed.name} {card.url}: {exc}")
+
+    return companies_crawled, jobs_found, jobs_stored, "\n".join(errors) if errors else None
+
+
+@app.command()
+def crawl(db: Path = DEFAULT_DB_PATH, limit: int | None = None) -> None:
+    create_tables(db)
+    companies_crawled, jobs_found, jobs_stored, error = _crawl_seeds(db, SEEDS, limit)
+    with create_session(db) as session:
+        session.add(
+            Run(
+                kind="crawl",
+                status="success" if error is None else "partial",
+                jobs_found=jobs_found,
+                jobs_stored=jobs_stored,
+                policy_ver=POLICY_VER,
+                model=None,
+                error=error,
+            )
+        )
+        session.commit()
+    typer.echo(f"Crawled {companies_crawled} companies, found {jobs_found} jobs, stored {jobs_stored} jobs")
 
 
 @app.command()
