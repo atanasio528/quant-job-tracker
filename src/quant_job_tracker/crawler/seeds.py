@@ -25,7 +25,7 @@ SEEDS: list[CompanySeed] = [
         "generic",
     ),
     CompanySeed("D. E. Shaw", "quant_hedge_fund", "https://www.deshaw.com/careers", "generic"),
-    CompanySeed("Two Sigma", "quant_hedge_fund", "https://careers.twosigma.com/", "generic"),
+    CompanySeed("Two Sigma", "quant_hedge_fund", "https://careers.twosigma.com/careers/OpenRoles", "generic"),
     CompanySeed("Citadel", "multi_manager", "https://www.citadel.com/careers/open-opportunities/", "generic"),
     CompanySeed(
         "Citadel Securities",

@@ -23,7 +23,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 
 ### Hedge Funds (41)
 - D. E. Shaw: https://www.deshaw.com/careers
-- Two Sigma: https://careers.twosigma.com/
+- Two Sigma: https://careers.twosigma.com/careers/OpenRoles
 - Citadel: https://www.citadel.com/careers/open-opportunities/
 - Point72: https://careers.point72.com/
 - Cubist Systematic Strategies: https://careers.point72.com/
@@ -106,7 +106,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Hudson River Trading: https://www.hudsonrivertrading.com/careers/ | trusted patterns: `/careers/`, `greenhouse.io`. Official careers page; role details are surfaced from the HRT careers experience.
 - Jane Street: https://www.janestreet.com/join-jane-street/open-roles/ | trusted patterns: `/join-jane-street/open-roles/`. Official open roles page; querystring filters are categories, not separate job details.
 - D. E. Shaw: https://www.deshaw.com/careers | trusted patterns: `/careers/`, `/recruit/jobs/`. Official careers page; job detail URLs use `/careers/<role>-<id>`.
-- Two Sigma: https://careers.twosigma.com/ | trusted patterns: `careers.twosigma.com`, `/careers/OpenRoles/`. Official careers portal; reject `twosigma.com` `/businesses/` and article pages.
+- Two Sigma: https://careers.twosigma.com/careers/OpenRoles | trusted patterns: `careers.twosigma.com`, `/careers/OpenRoles`, `/careers/JobDetail/`. Official OpenRoles portal; reject `twosigma.com` `/businesses/` and article pages.
 - Citadel: https://www.citadel.com/careers/open-opportunities/ | trusted patterns: `/careers/details/`, `/careers/open-opportunities/`. Official open opportunities page; job postings use `/careers/details/`.
 - Citadel Securities: https://www.citadelsecurities.com/careers/open-opportunities/ | trusted patterns: `/careers/details/`, `/careers/open-opportunities/`. Official open opportunities page; job postings use `/careers/details/`.
 - Point72: https://careers.point72.com/ | trusted patterns: `careers.point72.com`, `CSJobDetail`, `CSCareerSearch`. Official careers portal; reject `point72.com` marketing/category links.

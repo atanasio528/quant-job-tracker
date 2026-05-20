@@ -14,6 +14,7 @@ from quant_job_tracker.crawler.job_sources import JOB_SOURCE_SEEDS
 from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
 from quant_job_tracker.crawler.service import (
     close_stale_jobs,
+    prune_jobs_matching_url_patterns,
     upsert_company_job_source,
     upsert_company_seed,
     upsert_crawled_job,
@@ -25,8 +26,23 @@ from quant_job_tracker.models import Eval, Job, Run
 from quant_job_tracker.policy import load_policy_bundle
 
 app = typer.Typer(name="qjt")
-EVAL_MODEL = "heuristic-v1"
+EVAL_MODEL = "heuristic-v2"
 POLICY_VER = "v1"
+KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY = {
+    "Citadel": (
+        "https://www.citadel.com/what-we-do/",
+        "https://www.citadel.com/careers/quantitative-research/",
+    ),
+    "Citadel Securities": (
+        "https://www.citadelsecurities.com/what-we-do/",
+        "https://www.citadelsecurities.com/careers/quantitative-research/",
+    ),
+    "D. E. Shaw": ("https://www.deshaw.com/what-we-do/",),
+    "Two Sigma": (
+        "https://www.twosigma.com/businesses/",
+        "https://www.twosigma.com/careers/quantitative-research-data-science/",
+    ),
+}
 
 
 @app.command()
@@ -50,9 +66,15 @@ def _crawl_seeds(
     for seed in selected_seeds:
         try:
             company_id = upsert_company_seed(db, seed)
+            prune_jobs_matching_url_patterns(
+                db, company_id, KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY.get(seed.name, ())
+            )
             companies_crawled += 1
-            html = adapter.fetch_html(seed.career_url)
-            cards = adapter.parse_cards(seed.career_url, html)
+            if hasattr(adapter, "fetch_cards"):
+                cards = adapter.fetch_cards(seed.career_url)
+            else:
+                html = adapter.fetch_html(seed.career_url)
+                cards = adapter.parse_cards(seed.career_url, html)
             successful_company_ids.append(company_id)
         except CareerPageBlockedError as exc:
             issues["bot_blocked"].append(f"{seed.name}: {exc}")

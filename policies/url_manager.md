@@ -43,7 +43,7 @@ The URL manager owns company-by-company job-source discovery before crawler chan
 - Reject URL patterns: `/tech-blog/`, `/about/`, `/offices/`
 - Confidence: high
 - Verification status: verified_dynamic
-- Crawl note: The careers page has search filters and open-role sections; Greenhouse links may be talent-community links, so the crawler should keep official HRT career-page context when classifying rows.
+- Crawl note: The careers page renders filters statically and loads jobs through the official WordPress AJAX action `get_hrt_jobs_handler`; Greenhouse links may be talent-community links, so keep official HRT career-page context when classifying rows.
 
 ### Jane Street
 
@@ -68,13 +68,13 @@ The URL manager owns company-by-company job-source discovery before crawler chan
 ### Two Sigma
 
 - Category: Hedge Funds
-- Source URL: https://careers.twosigma.com/
+- Source URL: https://careers.twosigma.com/careers/OpenRoles
 - Entry URL: https://www.twosigma.com/careers/
-- Trusted URL patterns: `careers.twosigma.com`, `/careers/OpenRoles/`, `/careers/JobDetail`
+- Trusted URL patterns: `careers.twosigma.com`, `/careers/OpenRoles`, `/careers/JobDetail/`
 - Reject URL patterns: `www.twosigma.com/businesses/`, `www.twosigma.com/articles/`, `www.twosigma.com/insights/`
 - Confidence: high
 - Verification status: verified_live
-- Crawl note: The real posting surface is the Two Sigma careers portal; the corporate careers page is useful as an entry page but should not be the crawler's only source.
+- Crawl note: The real posting surface is the OpenRoles careers portal; crawl `jobOffset` pagination and keep only `/careers/JobDetail/` detail links.
 
 ### Citadel
 

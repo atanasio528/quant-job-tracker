@@ -35,10 +35,10 @@ JOB_SOURCE_SEEDS: tuple[CompanyJobSourceSeed, ...] = (
     ),
     CompanyJobSourceSeed(
         "Two Sigma",
-        "https://careers.twosigma.com/",
+        "https://careers.twosigma.com/careers/OpenRoles",
         "official_careers",
-        ("careers.twosigma.com", "/careers/OpenRoles/"),
-        "Official careers portal; reject twosigma.com /businesses/ and article pages.",
+        ("careers.twosigma.com", "/careers/OpenRoles", "/careers/JobDetail/"),
+        "Official OpenRoles portal; use JobDetail links and reject twosigma.com marketing pages.",
     ),
     CompanyJobSourceSeed(
         "Citadel",

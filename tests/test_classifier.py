@@ -148,6 +148,56 @@ def test_classifier_marks_front_intern_roles_green() -> None:
     assert result.exp == "green"
 
 
+def test_classifier_does_not_let_site_boilerplate_risk_override_front_quant_title() -> None:
+    result = HeuristicClassifier().classify(
+        title="Quantitative Researcher (Mid-Freq)",
+        jd=(
+            "Develop alpha signals and predictive trading strategies. "
+            "Footer: modeling and risk management appear in general company navigation."
+        ),
+        policy="",
+    )
+
+    assert result.front == "green"
+
+
+def test_classifier_does_not_let_legal_footer_execution_services_override_front_title() -> None:
+    result = HeuristicClassifier().classify(
+        title="Quantitative Trader",
+        jd=(
+            "Market-facing trading role. Legal footer: services are provided by "
+            "Jane Street Execution Services, LLC."
+        ),
+        policy="",
+    )
+
+    assert result.front == "green"
+
+
+def test_classifier_does_not_promote_business_role_from_careers_navigation() -> None:
+    result = HeuristicClassifier().classify(
+        title="Business Manager",
+        jd=(
+            "Own team planning and coordination. Careers navigation: Engineering, "
+            "Quantitative Research & Data Science, Open Roles. Footer links mention "
+            "alpha and Quantitative Researcher profiles."
+        ),
+        policy="",
+    )
+
+    assert result.front == "red"
+
+
+def test_classifier_keeps_explicit_risk_role_red_even_with_quant_title() -> None:
+    result = HeuristicClassifier().classify(
+        title="Quantitative Risk Researcher",
+        jd="Research role focused on model validation and portfolio risk.",
+        policy="",
+    )
+
+    assert result.front == "red"
+
+
 def test_classifier_flags_dirty_titles_and_page_noise() -> None:
     result = HeuristicClassifier().classify(
         title="Asset Management Provides investment management solutions across all major asset classes.",

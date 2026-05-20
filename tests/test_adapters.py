@@ -122,6 +122,186 @@ def test_generic_adapter_cleans_card_icon_and_preview_description() -> None:
     ]
 
 
+def test_adapter_parses_deshaw_real_job_cards_and_locations() -> None:
+    html = """
+    <html><body>
+      <a href="/what-we-do/investment-management">Investment Management</a>
+      <div class="job" data-job-id="5731">
+        <div class="information">
+          <p class="category">Trading</p>
+          <span class="location">New York</span>
+        </div>
+        <div class="description-wrapper">
+          <a id="job-description-a-tag" href="/careers/proprietary-trading-intern-new-york-summer-2027-5731">
+            <span class="job-display-name">Proprietary Trading Intern (New York) – Summer 2027</span>
+          </a>
+        </div>
+      </div>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://www.deshaw.com/careers", html)
+
+    assert cards == [
+        JobCard(
+            title="Proprietary Trading Intern (New York) – Summer 2027",
+            loc="New York",
+            url="https://www.deshaw.com/careers/proprietary-trading-intern-new-york-summer-2027-5731",
+        )
+    ]
+
+
+def test_adapter_parses_two_sigma_open_roles_and_ignores_marketing_links() -> None:
+    html = """
+    <html><body>
+      <a href="https://www.twosigma.com/businesses/investment-management/">Investment Management</a>
+      <article class="article article--result">
+        <h3 class="article__header__text__title">
+          <a class="link" href="https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Data-Scientist-Campus-Full-Time/13662">
+            Data Scientist - Campus Full-Time
+          </a>
+        </h3>
+        <div class="article__header__content__text">
+          <span class="paragraph_inner-span">United States - NY New York</span>
+          <span class="paragraph_inner-span">Data Science</span>
+          <span class="paragraph_inner-span">Early Careers</span>
+        </div>
+      </article>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://careers.twosigma.com/careers/OpenRoles", html)
+
+    assert cards == [
+        JobCard(
+            title="Data Scientist - Campus Full-Time",
+            loc="United States - NY New York",
+            url="https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Data-Scientist-Campus-Full-Time/13662",
+        )
+    ]
+
+
+def test_adapter_parses_citadel_detail_links_only() -> None:
+    html = """
+    <html><body>
+      <a href="/careers/quantitative-research/">Quantitative Research</a>
+      <a href="/careers/details/quantitative-researcher-phd-intern-us/">
+        Quantitative Researcher – PhD Intern (US) Greenwich, Miami, New York Apply Now
+      </a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://www.citadel.com/careers/open-opportunities/", html)
+
+    assert cards == [
+        JobCard(
+            title="Quantitative Researcher – PhD Intern (US)",
+            loc="Greenwich, Miami, New York",
+            url="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+        )
+    ]
+
+
+@respx.mock
+def test_adapter_fetches_jane_street_jobs_from_official_json() -> None:
+    respx.get("https://www.janestreet.com/jobs/main.json").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "id": 1,
+                    "position": "Quantitative Trader",
+                    "category": "Trading, Research, and Machine Learning",
+                    "availability": "Full-Time: New Grad",
+                    "city": "NYC",
+                },
+                {
+                    "id": 2,
+                    "position": "Unlisted Role",
+                    "category": "Technology",
+                    "availability": "Full-Time: Experienced",
+                    "city": "LDN",
+                },
+            ],
+        )
+    )
+    respx.get("https://www.janestreet.com/static/position-directories.json").mock(
+        return_value=httpx.Response(200, json=["1"])
+    )
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards("https://www.janestreet.com/join-jane-street/open-roles/")
+
+    assert cards == [
+        JobCard(
+            title="Quantitative Trader",
+            loc="New York",
+            url="https://www.janestreet.com/join-jane-street/position/1/",
+        )
+    ]
+
+
+@respx.mock
+def test_adapter_fetches_hrt_jobs_from_official_ajax() -> None:
+    career_html = """
+    <html><body>
+      <div class="hrt-card-wrapper" data-filters-settings='{"meta_data":[],"settings":{"hide_job_id":true}}'></div>
+    </body></html>
+    """
+    card_html = """
+    <div class="hrt-card-item">
+      <div class="hrt-card-title-wrap">
+        <a class="hrt-card-title" href="https://www.hudsonrivertrading.com/hrt-job/algorithm-developer/">Algorithm Developer</a>
+      </div>
+      <div class="hrt-card-meta-desktop">
+        <ul class="hrt-card-info-list">
+          <li class="hrt-card-info-item"><span>New York</span></li>
+          <li class="hrt-card-info-item"><span>Chicago</span></li>
+        </ul>
+        <ul class="hrt-card-info-list second-list">
+          <li class="hrt-card-info-item"><span>Strategy Development</span></li>
+        </ul>
+      </div>
+    </div>
+    """
+    respx.get("https://www.hudsonrivertrading.com/careers/").mock(
+        return_value=httpx.Response(200, text=career_html)
+    )
+    respx.post("https://www.hudsonrivertrading.com/wp-admin/admin-ajax.php").mock(
+        return_value=httpx.Response(200, json=[{"content": card_html}])
+    )
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards("https://www.hudsonrivertrading.com/careers/")
+
+    assert cards == [
+        JobCard(
+            title="Algorithm Developer",
+            loc="New York, Chicago",
+            url="https://www.hudsonrivertrading.com/hrt-job/algorithm-developer/",
+        )
+    ]
+
+
+@respx.mock
+def test_adapter_retries_transient_fetch_html_timeout() -> None:
+    route = respx.get("https://example.com/jobs/quant").mock(
+        side_effect=[
+            httpx.ConnectTimeout("handshake timed out"),
+            httpx.Response(200, text="<html>Quant Researcher</html>"),
+        ]
+    )
+    adapter = GenericAdapter()
+
+    html = adapter.fetch_html("https://example.com/jobs/quant")
+
+    assert html == "<html>Quant Researcher</html>"
+    assert route.call_count == 2
+
+
 def test_clean_stored_title_strips_summary_preview() -> None:
     title = (
         "Senior Analyst, Equity Data Science Summary: PanAgora seeks to integrate a Sr. "

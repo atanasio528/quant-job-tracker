@@ -6,7 +6,7 @@ from quant_job_tracker.crawler.adapters import JobCard, clean_stored_title
 from quant_job_tracker.crawler.job_sources import CompanyJobSourceSeed
 from quant_job_tracker.crawler.seeds import CompanySeed
 from quant_job_tracker.db import create_session
-from quant_job_tracker.models import Company, CompanyJobSource, Job
+from quant_job_tracker.models import App, Company, CompanyJobSource, Eval, Job, Review
 
 
 def hash_jd(jd: str) -> str:
@@ -153,5 +153,28 @@ def close_stale_jobs(db_path: Path, company_ids: list[int], cutoff: datetime) ->
             job.status = "closed"
             job.closed_at = cutoff
         count = len(jobs)
+        session.commit()
+        return count
+
+
+def prune_jobs_matching_url_patterns(
+    db_path: Path, company_id: int, url_patterns: tuple[str, ...]
+) -> int:
+    if not url_patterns:
+        return 0
+    with create_session(db_path) as session:
+        jobs = session.query(Job).filter(Job.company_id == company_id).all()
+        bad_jobs = [
+            job for job in jobs if any(pattern in job.url for pattern in url_patterns)
+        ]
+        if not bad_jobs:
+            return 0
+        job_ids = [job.id for job in bad_jobs]
+        session.query(Eval).filter(Eval.job_id.in_(job_ids)).delete(synchronize_session=False)
+        session.query(Review).filter(Review.job_id.in_(job_ids)).delete(synchronize_session=False)
+        session.query(App).filter(App.job_id.in_(job_ids)).delete(synchronize_session=False)
+        for job in bad_jobs:
+            session.delete(job)
+        count = len(bad_jobs)
         session.commit()
         return count

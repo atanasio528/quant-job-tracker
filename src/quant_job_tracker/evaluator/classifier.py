@@ -23,15 +23,19 @@ class EvalResult(BaseModel):
 class HeuristicClassifier:
     def classify(self, title: str, jd: str, policy: str) -> EvalResult:
         text = f"{title}\n{jd}".lower()
-        front_green_terms = [
+        front_title_green_terms = [
             "alpha",
+            "ai researcher",
+            "machine learning researcher",
             "quant researcher",
             "quantitative researcher",
             "quant trader",
             "quantitative trader",
+            "research scientist",
+            "statistical arbitrage",
+            "trader",
             "trading analyst",
             "trading strategy",
-            "predictive",
         ]
         front_red_terms = [
             "risk",
@@ -40,6 +44,13 @@ class HeuristicClassifier:
             "portfolio analytics",
             "software engineer",
             "data engineer",
+        ]
+        jd_front_red_terms = [
+            "model validation",
+            "execution services",
+            "portfolio analytics",
+            "portfolio risk",
+            "risk model",
         ]
         visa_green_terms = [
             "sponsorship available",
@@ -96,10 +107,19 @@ class HeuristicClassifier:
         has_policy_title_alias = _policy_allows_front_alias(title_lower, policy_lower)
         has_front_alias_support = any(term in jd_lower for term in FRONT_ALIAS_SUPPORT_TERMS)
 
-        front = "green" if any(term in text for term in front_green_terms) or front_intern else "red"
+        front = (
+            "green"
+            if any(term in title_lower for term in front_title_green_terms) or front_intern
+            else "red"
+        )
         if front == "red" and has_policy_title_alias and has_front_alias_support:
             front = "green"
-        if any(term in text for term in front_red_terms) or page_noise:
+        has_front_red_title_evidence = any(term in title_lower for term in front_red_terms)
+        has_front_red_jd_evidence = front == "red" and any(
+            term in jd_lower for term in jd_front_red_terms
+        )
+        has_front_red_evidence = has_front_red_title_evidence or has_front_red_jd_evidence
+        if has_front_red_evidence or page_noise:
             front = "red"
 
         has_visa_red = any(term in text for term in visa_red_terms)

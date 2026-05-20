@@ -55,7 +55,7 @@ def test_url_manager_policy_exists_and_has_first_five_sources() -> None:
         ("Hudson River Trading", "https://www.hudsonrivertrading.com/careers/"),
         ("Jane Street", "https://www.janestreet.com/join-jane-street/open-roles/"),
         ("D. E. Shaw", "https://www.deshaw.com/careers"),
-        ("Two Sigma", "https://careers.twosigma.com/"),
+        ("Two Sigma", "https://careers.twosigma.com/careers/OpenRoles"),
         ("Citadel", "https://www.citadel.com/careers/open-opportunities/"),
     ]:
         assert company in bundle

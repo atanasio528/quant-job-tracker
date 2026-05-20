@@ -52,6 +52,9 @@ def test_collect_sources_command_stores_curated_job_sources(tmp_path: Path) -> N
         flow = session.query(CompanyJobSource).filter_by(company="Flow Traders").one()
         assert flow.source_url == "https://www.flowtraders.com/careers/job-search/"
         assert "/careers/job-search/" in flow.url_patterns
+        two_sigma = session.query(CompanyJobSource).filter_by(company="Two Sigma").one()
+        assert two_sigma.source_url == "https://careers.twosigma.com/careers/OpenRoles"
+        assert "/careers/JobDetail/" in two_sigma.url_patterns
 
 
 def test_collect_sources_command_retires_stale_source_urls(tmp_path: Path) -> None:
@@ -93,7 +96,9 @@ def test_collect_sources_command_retires_stale_source_urls(tmp_path: Path) -> No
             "https://www.flowtraders.com/careers/job-search/"
         ]
         two_sigma_active = session.query(CompanyJobSource).filter_by(company="Two Sigma", active=True).all()
-        assert [row.source_url for row in two_sigma_active] == ["https://careers.twosigma.com/"]
+        assert [row.source_url for row in two_sigma_active] == [
+            "https://careers.twosigma.com/careers/OpenRoles"
+        ]
 
 
 def test_sources_command_lists_stored_job_sources(tmp_path: Path) -> None:
@@ -176,7 +181,7 @@ def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> 
         assert runs[0].kind == "eval"
         assert runs[0].status == "success"
         assert runs[0].jobs_evaluated == 1
-        assert runs[0].model == "heuristic-v1"
+        assert runs[0].model == "heuristic-v2"
         assert runs[0].policy_ver == "v1"
         assert runs[1].jobs_evaluated == 0
 
@@ -342,6 +347,76 @@ def test_crawl_command_breaks_out_blocked_career_pages(tmp_path: Path, monkeypat
         assert run.error is not None
         assert "Bot crawling prohibited / 403" in run.error
         assert "Blocked Fund: blocked by Cloudflare challenge" in run.error
+
+
+def test_crawl_command_prunes_known_bad_job_urls_even_when_company_is_blocked(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from quant_job_tracker import cli
+
+    db_path = tmp_path / "qjt.sqlite3"
+    seed = CompanySeed(
+        name="Citadel",
+        group="multi_manager",
+        career_url="https://www.citadel.com/careers/open-opportunities/",
+        ats="generic",
+    )
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Citadel",
+            group="multi_manager",
+            career_url=seed.career_url,
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        bad_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Quantitative Research",
+            loc="Unknown",
+            url="https://www.citadel.com/careers/quantitative-research/",
+            source="official",
+            jd="Marketing page",
+            jd_hash="bad",
+            status="live",
+        )
+        session.add(bad_job)
+        session.flush()
+        session.add(
+            Eval(
+                job_id=bad_job.id,
+                jd_hash=bad_job.jd_hash,
+                front="red",
+                h1b="yellow",
+                exp="green",
+                score=50,
+                reason="old false positive",
+                flags="page_noise",
+                model="heuristic-v1",
+                policy_ver="v1",
+            )
+        )
+        session.commit()
+
+    class FakeAdapter:
+        def fetch_html(self, url: str) -> str:
+            assert url == seed.career_url
+            raise cli.CareerPageBlockedError("blocked by Cloudflare challenge")
+
+    monkeypatch.setattr(cli, "SEEDS", [seed])
+    monkeypatch.setattr(cli, "GenericAdapter", FakeAdapter)
+
+    result = runner.invoke(cli.app, ["crawl", "--db", str(db_path), "--limit", "1"])
+
+    assert result.exit_code == 0
+    with create_session(db_path) as session:
+        assert session.query(Job).count() == 0
+        assert session.query(Eval).count() == 0
+        run = session.query(Run).one()
+        assert run.status == "partial"
+        assert "Bot crawling prohibited / 403" in (run.error or "")
 
 
 def test_crawl_command_breaks_out_404_seed_urls(tmp_path: Path, monkeypatch) -> None:
