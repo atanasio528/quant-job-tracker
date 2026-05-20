@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="/">Back to jobs</a></p>
+<h1>{{ job.title }}</h1>
+<p><strong>{{ job.company }}</strong> · {{ job.loc }} · <a href="{{ job.url }}">Official posting</a></p>
+
+<h2>Evaluations</h2>
+{% for eval in evals %}
+  <p>
+    <span class="pill {{ eval.front }}">front {{ eval.front }}</span>
+    <span class="pill {{ eval.h1b }}">h1b {{ eval.h1b }}</span>
+    <span class="pill {{ eval.exp }}">exp {{ eval.exp }}</span>
+    <strong>{{ eval.score }}</strong>
+  </p>
+  <p>{{ eval.reason }}</p>
+{% endfor %}
+
+<h2>Stored JD</h2>
+<pre>{{ job.jd }}</pre>
+{% endblock %}

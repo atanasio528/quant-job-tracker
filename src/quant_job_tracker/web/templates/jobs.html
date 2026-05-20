@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Jobs</h1>
+<table>
+  <thead>
+    <tr>
+      <th>Company</th><th>Title</th><th>Location</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    <tr>
+      <td>{{ row.job.company }}</td>
+      <td><a href="/jobs/{{ row.job.id }}">{{ row.job.title }}</a></td>
+      <td>{{ row.job.loc }}</td>
+      {% if row.eval %}
+        <td><span class="pill {{ row.eval.front }}">{{ row.eval.front }}</span></td>
+        <td><span class="pill {{ row.eval.h1b }}">{{ row.eval.h1b }}</span></td>
+        <td><span class="pill {{ row.eval.exp }}">{{ row.eval.exp }}</span></td>
+        <td>{{ row.eval.score }}</td>
+        <td class="muted">{{ row.eval.flags }}</td>
+      {% else %}
+        <td colspan="5" class="muted">not evaluated</td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

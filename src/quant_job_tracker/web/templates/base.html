@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quant Job Tracker</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #172026; background: #f6f8fa; }
+      header { background: #12212f; color: white; padding: 14px 24px; }
+      main { padding: 24px; }
+      table { width: 100%; border-collapse: collapse; background: white; }
+      th, td { padding: 10px 12px; border-bottom: 1px solid #e5e8eb; text-align: left; font-size: 14px; }
+      th { background: #eef2f5; font-weight: 650; }
+      a { color: #075985; text-decoration: none; }
+      .pill { border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 700; }
+      .green { background: #d9fbe5; color: #075e2b; }
+      .yellow { background: #fff4c2; color: #765900; }
+      .red { background: #ffe1df; color: #8a1f17; }
+      .muted { color: #66717c; }
+      pre { white-space: pre-wrap; background: white; padding: 16px; border: 1px solid #e5e8eb; }
+    </style>
+  </head>
+  <body>
+    <header><strong>Quant Job Tracker</strong></header>
+    <main>{% block content %}{% endblock %}</main>
+  </body>
+</html>
