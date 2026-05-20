@@ -96,3 +96,58 @@ The URL manager owns company-by-company job-source discovery before crawler chan
 - Confidence: medium
 - Verification status: verified_dynamic
 - Crawl note: `/careers/jobs` can return 404. The official path is to open the careers page, use `Job Search`, then search/filter relevant roles on `/careers/job-search/`.
+
+## Full-Run Verified Source Fixes
+
+### IMC Trading
+
+- Category: Prop Trading
+- Source URL: https://www.imc.com/us/search-careers
+- Supplemental URL: https://www.imc.com/us/careers/experienced-roles/trading
+- Trusted URL patterns: `/us/search-careers`, `/us/careers/jobs/`
+- Reject URL patterns: `/us/strategic-investments`, `/us/careers/benefits`, `/us/careers/recruitment-process`
+- Confidence: high
+- Verification status: verified_live
+- Crawl note: The main search page exposes only a partial first-page set; combine it with the official trading roles page to capture quant researcher and trader roles.
+
+### Susquehanna International Group
+
+- Category: Prop Trading
+- Source URL: https://careers.sig.com/
+- API URL: https://careers.sig.com/api/jobs
+- Trusted URL patterns: `/api/jobs`, `/jobs/`
+- Reject URL patterns: `/what-we-do/`, `/who-we-are/`, `/privacy/`
+- Confidence: high
+- Verification status: verified_dynamic
+- Crawl note: The rendered Jibe app hides job cards from static parsing. Query the official API with quant research/trading/trader/ML terms, then use `/jobs/<slug>` detail URLs.
+
+### Voloridge
+
+- Category: Hedge Funds
+- Source URL: https://www.voloridge.com/join-our-team
+- Trusted URL patterns: `/join-our-team`, `voloridge-investment-management.hiringthing.com/job/`
+- Reject URL patterns: `/careers/`
+- Confidence: high
+- Verification status: verified_live
+- Crawl note: The old `/careers/` URL is only an intro/404-style page; the live job cards are on `Join Our Team` and link to HiringThing.
+
+### XTX Markets
+
+- Category: Prop Trading
+- Entry URL: https://www.xtxmarkets.com/careers/
+- Source URL: https://job-boards.greenhouse.io/xtxmarketstechnologies
+- Trusted URL patterns: `job-boards.greenhouse.io/xtxmarketstechnologies/jobs/`
+- Reject URL patterns: `/careers/` marketing anchors without job IDs
+- Confidence: high
+- Verification status: verified_live
+- Crawl note: The official careers page links to the Greenhouse board; parse Greenhouse rows to keep title and location separate.
+
+### BlackRock
+
+- Category: Asset Management
+- Source URL: https://careers.blackrock.com/search-jobs?k=quant
+- Trusted URL patterns: `careers.blackrock.com/search-jobs`, `careers.blackrock.com/job/`
+- Reject URL patterns: `/blog-`, `/from-hackathon`, `/career-development`
+- Confidence: medium
+- Verification status: verified_live
+- Crawl note: The homepage promotes career blog posts that look keyword-relevant; use the official quant search URL and only accept `/job/` detail links.

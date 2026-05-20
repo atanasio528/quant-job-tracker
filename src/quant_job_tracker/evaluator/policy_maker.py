@@ -19,6 +19,19 @@ def suggest_policy_updates(rows: list[dict[str, str]]) -> str:
     quant_dev_rows = [row for row in rows if "quant_dev_excluded" in row.get("flags", "")]
     portfolio_rows = [row for row in rows if "portfolio_manager" in row.get("flags", "")]
     location_rows = [row for row in rows if "wrong_location" in row.get("flags", "")]
+    manual_rows = [
+        row
+        for row in rows
+        if any(
+            flag in row.get("flags", "")
+            for flag in (
+                "manual_update",
+                "blocked_by_provider",
+                "detail_blocked",
+                "needs_manual_review",
+            )
+        )
+    ]
 
     lines = ["# Policy Maker Suggestions", ""]
     if alias_rows:
@@ -62,6 +75,18 @@ def suggest_policy_updates(rows: list[dict[str, str]]) -> str:
         lines.append(
             "- Wrong-location rows reached evaluation. Improve adapters to extract location from job detail pages "
             "before evaluation when job cards have unknown locations."
+        )
+        lines.append("")
+    if manual_rows:
+        lines.append("## Manual Update Watchlist")
+        companies = sorted({row.get("company", "Unknown") for row in manual_rows})
+        lines.append(
+            "- Official sources need manual refresh, saved HTML, or a dedicated adapter for: "
+            f"{', '.join(companies)}."
+        )
+        lines.append(
+            "- Keep these companies visible in the dashboard, but do not treat blocked detail pages as evidence "
+            "that the role is closed or ineligible."
         )
         lines.append("")
     if len(lines) == 2:

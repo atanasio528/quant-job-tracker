@@ -72,3 +72,29 @@ def test_real_evaluator_policy_lists_all_target_company_sources() -> None:
     for seed in SEEDS:
         assert seed.name in bundle
         assert source_by_company[seed.name].source_url in bundle
+
+
+def test_policy_maker_policy_has_manual_update_watchlist() -> None:
+    bundle = load_policy_bundle(Path("policies"), "policy_maker")
+
+    assert "Manual Update Watchlist" in bundle
+    assert "Citadel" in bundle
+    assert "Citadel Securities" in bundle
+    assert "manual_update" in bundle
+
+
+def test_real_source_urls_use_verified_job_listing_surfaces() -> None:
+    source_by_company = {source.company: source for source in JOB_SOURCE_SEEDS}
+
+    assert source_by_company["Voloridge"].source_url == "https://www.voloridge.com/join-our-team"
+    assert source_by_company["IMC Trading"].source_url == "https://www.imc.com/us/search-careers"
+    assert source_by_company["XTX Markets"].source_url == (
+        "https://job-boards.greenhouse.io/xtxmarketstechnologies"
+    )
+    assert (
+        source_by_company["BlackRock"].source_url
+        == "https://careers.blackrock.com/search-jobs?k=quant"
+    )
+    assert source_by_company["Flow Traders"].source_url == (
+        "https://www.flowtraders.com/careers/job-search/"
+    )

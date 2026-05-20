@@ -25,8 +25,12 @@ SEEDS: list[CompanySeed] = [
         "generic",
     ),
     CompanySeed("D. E. Shaw", "quant_hedge_fund", "https://www.deshaw.com/careers", "generic"),
-    CompanySeed("Two Sigma", "quant_hedge_fund", "https://careers.twosigma.com/careers/OpenRoles", "generic"),
-    CompanySeed("Citadel", "multi_manager", "https://www.citadel.com/careers/open-opportunities/", "generic"),
+    CompanySeed(
+        "Two Sigma", "quant_hedge_fund", "https://careers.twosigma.com/careers/OpenRoles", "generic"
+    ),
+    CompanySeed(
+        "Citadel", "multi_manager", "https://www.citadel.com/careers/open-opportunities/", "generic"
+    ),
     CompanySeed(
         "Citadel Securities",
         "market_maker",
@@ -41,8 +45,12 @@ SEEDS: list[CompanySeed] = [
         "generic",
         "Official Cubist page; jobs may be listed under Point72 careers.",
     ),
-    CompanySeed("Millennium Management", "multi_manager", "https://www.mlp.com/careers/", "generic"),
-    CompanySeed("Balyasny Asset Management", "multi_manager", "https://www.bamfunds.com/careers/", "generic"),
+    CompanySeed(
+        "Millennium Management", "multi_manager", "https://www.mlp.com/careers/", "generic"
+    ),
+    CompanySeed(
+        "Balyasny Asset Management", "multi_manager", "https://www.bamfunds.com/careers/", "generic"
+    ),
     CompanySeed(
         "Squarepoint Capital",
         "quant_hedge_fund",
@@ -67,7 +75,7 @@ SEEDS: list[CompanySeed] = [
         "https://optiver.com/working-at-optiver/career-opportunities/",
         "generic",
     ),
-    CompanySeed("IMC Trading", "prop", "https://www.imc.com/us/careers/jobs/", "generic"),
+    CompanySeed("IMC Trading", "prop", "https://www.imc.com/us/search-careers", "generic"),
     CompanySeed("DRW", "prop", "https://drw.com/work-at-drw/listings", "generic"),
     CompanySeed("Jump Trading", "prop", "https://www.jumptrading.com/careers/", "generic"),
     CompanySeed(
@@ -76,7 +84,12 @@ SEEDS: list[CompanySeed] = [
         "https://www.tower-research.com/open-positions/",
         "generic",
     ),
-    CompanySeed("XTX Markets", "market_maker", "https://www.xtxmarkets.com/careers/", "generic"),
+    CompanySeed(
+        "XTX Markets",
+        "market_maker",
+        "https://job-boards.greenhouse.io/xtxmarketstechnologies",
+        "generic",
+    ),
     CompanySeed("Virtu Financial", "market_maker", "https://www.virtu.com/careers/", "generic"),
     CompanySeed(
         "Flow Traders",
@@ -148,7 +161,9 @@ SEEDS: list[CompanySeed] = [
         "https://www.rentec.com/Careers.action",
         "generic",
     ),
-    CompanySeed("AQR Capital Management", "quant_hedge_fund", "https://www.aqr.com/careers", "generic"),
+    CompanySeed(
+        "AQR Capital Management", "quant_hedge_fund", "https://www.aqr.com/careers", "generic"
+    ),
     CompanySeed("Man Group", "quant_hedge_fund", "https://www.man.com/careers", "generic"),
     CompanySeed("Winton", "quant_hedge_fund", "https://www.winton.com/careers", "generic"),
     CompanySeed("WorldQuant", "quant_hedge_fund", "https://www.worldquant.com/careers/", "generic"),
@@ -167,8 +182,12 @@ SEEDS: list[CompanySeed] = [
         "generic",
     ),
     CompanySeed("ExodusPoint", "multi_manager", "https://www.exoduspoint.com/careers/", "generic"),
-    CompanySeed("PDT Partners", "quant_hedge_fund", "https://www.pdtpartners.com/careers/", "generic"),
-    CompanySeed("The Voleon Group", "quant_hedge_fund", "https://www.voleon.com/careers", "generic"),
+    CompanySeed(
+        "PDT Partners", "quant_hedge_fund", "https://www.pdtpartners.com/careers/", "generic"
+    ),
+    CompanySeed(
+        "The Voleon Group", "quant_hedge_fund", "https://www.voleon.com/careers", "generic"
+    ),
     CompanySeed("Trexquant", "quant_hedge_fund", "https://www.trexquant.com/careers/", "generic"),
     CompanySeed("AlphaGrep", "quant_hedge_fund", "https://www.alpha-grep.com/careers/", "generic"),
     CompanySeed("CFM", "quant_hedge_fund", "https://www.cfm.com/join-us/", "generic"),
@@ -178,14 +197,18 @@ SEEDS: list[CompanySeed] = [
         "https://www.systematica.com/careers/",
         "generic",
     ),
-    CompanySeed("Aspect Capital", "quant_hedge_fund", "https://www.aspectcapital.com/careers/", "generic"),
+    CompanySeed(
+        "Aspect Capital", "quant_hedge_fund", "https://www.aspectcapital.com/careers/", "generic"
+    ),
     CompanySeed(
         "Graham Capital Management",
         "quant_hedge_fund",
         "https://www.grahamcapital.com/careers/",
         "generic",
     ),
-    CompanySeed("Brevan Howard", "quant_hedge_fund", "https://www.brevanhoward.com/careers/", "generic"),
+    CompanySeed(
+        "Brevan Howard", "quant_hedge_fund", "https://www.brevanhoward.com/careers/", "generic"
+    ),
     CompanySeed("Marshall Wace", "quant_hedge_fund", "https://www.mwam.com/careers/", "generic"),
     CompanySeed(
         "Rokos Capital Management",
@@ -199,23 +222,45 @@ SEEDS: list[CompanySeed] = [
         "https://www.tudor.com/careers/",
         "generic",
     ),
-    CompanySeed("Aquatic Capital Management", "quant_hedge_fund", "https://aquatic.com/careers/", "generic"),
-    CompanySeed("Voloridge", "quant_hedge_fund", "https://www.voloridge.com/careers/", "generic"),
+    CompanySeed(
+        "Aquatic Capital Management", "quant_hedge_fund", "https://aquatic.com/careers/", "generic"
+    ),
+    CompanySeed(
+        "Voloridge",
+        "quant_hedge_fund",
+        "https://www.voloridge.com/join-our-team",
+        "generic",
+    ),
     CompanySeed(
         "Arrowstreet Capital",
         "quant_asset_manager",
         "https://www.arrowstreetcapital.com/careers/",
         "generic",
     ),
-    CompanySeed("Kepos Capital", "quant_hedge_fund", "https://www.keposcapital.com/careers/", "generic"),
-    CompanySeed("Walleye Capital", "multi_manager", "https://www.walleyecapital.com/careers/", "generic"),
+    CompanySeed(
+        "Kepos Capital", "quant_hedge_fund", "https://www.keposcapital.com/careers/", "generic"
+    ),
+    CompanySeed(
+        "Walleye Capital", "multi_manager", "https://www.walleyecapital.com/careers/", "generic"
+    ),
     CompanySeed("Paloma Partners", "multi_manager", "https://www.paloma.com/careers/", "generic"),
-    CompanySeed("Laurion Capital", "multi_manager", "https://www.laurioncapital.com/careers/", "generic"),
-    CompanySeed("Eisler Capital", "multi_manager", "https://www.eislercapital.com/careers/", "generic"),
+    CompanySeed(
+        "Laurion Capital", "multi_manager", "https://www.laurioncapital.com/careers/", "generic"
+    ),
+    CompanySeed(
+        "Eisler Capital", "multi_manager", "https://www.eislercapital.com/careers/", "generic"
+    ),
     CompanySeed("LMR Partners", "multi_manager", "https://www.lmrpartners.com/careers/", "generic"),
     CompanySeed("Quadrature", "quant_hedge_fund", "https://quadrature.ai/careers/", "generic"),
-    CompanySeed("Teza Technologies", "quant_hedge_fund", "https://www.teza.com/careers/", "generic"),
-    CompanySeed("BlackRock", "quant_asset_manager", "https://careers.blackrock.com/", "generic"),
+    CompanySeed(
+        "Teza Technologies", "quant_hedge_fund", "https://www.teza.com/careers/", "generic"
+    ),
+    CompanySeed(
+        "BlackRock",
+        "quant_asset_manager",
+        "https://careers.blackrock.com/search-jobs?k=quant",
+        "generic",
+    ),
     CompanySeed(
         "Acadian Asset Management",
         "quant_asset_manager",
@@ -234,9 +279,20 @@ SEEDS: list[CompanySeed] = [
         "https://www.dimensional.com/us-en/careers",
         "generic",
     ),
-    CompanySeed("Goldman Sachs", "sell_side_quant", "https://www.goldmansachs.com/careers/", "generic"),
-    CompanySeed("JPMorgan Chase", "sell_side_quant", "https://careers.jpmorgan.com/us/en/home", "generic"),
-    CompanySeed("Morgan Stanley", "sell_side_quant", "https://www.morganstanley.com/people-opportunities/careers", "generic"),
+    CompanySeed(
+        "Goldman Sachs", "sell_side_quant", "https://www.goldmansachs.com/careers/", "generic"
+    ),
+    CompanySeed(
+        "JPMorgan Chase", "sell_side_quant", "https://careers.jpmorgan.com/us/en/home", "generic"
+    ),
+    CompanySeed(
+        "Morgan Stanley",
+        "sell_side_quant",
+        "https://www.morganstanley.com/people-opportunities/careers",
+        "generic",
+    ),
     CompanySeed("Citi", "sell_side_quant", "https://jobs.citi.com/", "generic"),
-    CompanySeed("Bank of America", "sell_side_quant", "https://careers.bankofamerica.com/", "generic"),
+    CompanySeed(
+        "Bank of America", "sell_side_quant", "https://careers.bankofamerica.com/", "generic"
+    ),
 ]

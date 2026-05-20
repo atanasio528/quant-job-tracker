@@ -45,3 +45,26 @@ def test_policy_maker_suggests_adapter_and_boundary_updates() -> None:
     assert "Crawler Adapter Improvements" in suggestions
     assert "Front Quant Boundary" in suggestions
     assert "Portfolio Roles" in suggestions
+
+
+def test_policy_maker_suggests_manual_update_watchlist() -> None:
+    suggestions = suggest_policy_updates(
+        [
+            {
+                "title": "Quantitative Researcher",
+                "company": "Citadel",
+                "front": "green",
+                "flags": "manual_update,detail_blocked",
+            },
+            {
+                "title": "Quantitative Research",
+                "company": "Citadel Securities",
+                "front": "red",
+                "flags": "blocked_by_provider,needs_manual_review",
+            },
+        ]
+    )
+
+    assert "Manual Update Watchlist" in suggestions
+    assert "Citadel" in suggestions
+    assert "Citadel Securities" in suggestions

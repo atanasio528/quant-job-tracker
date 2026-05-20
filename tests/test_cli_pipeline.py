@@ -91,11 +91,15 @@ def test_collect_sources_command_retires_stale_source_urls(tmp_path: Path) -> No
 
     assert result.exit_code == 0
     with create_session(db_path) as session:
-        flow_active = session.query(CompanyJobSource).filter_by(company="Flow Traders", active=True).all()
+        flow_active = (
+            session.query(CompanyJobSource).filter_by(company="Flow Traders", active=True).all()
+        )
         assert [row.source_url for row in flow_active] == [
             "https://www.flowtraders.com/careers/job-search/"
         ]
-        two_sigma_active = session.query(CompanyJobSource).filter_by(company="Two Sigma", active=True).all()
+        two_sigma_active = (
+            session.query(CompanyJobSource).filter_by(company="Two Sigma", active=True).all()
+        )
         assert [row.source_url for row in two_sigma_active] == [
             "https://careers.twosigma.com/careers/OpenRoles"
         ]
@@ -133,6 +137,35 @@ def test_canonical_categories_partition_all_target_companies() -> None:
         "Prop Trading": 30,
         "Asset Management": 5,
     }
+
+
+def test_known_non_job_patterns_cover_observed_false_positive_urls() -> None:
+    from quant_job_tracker.cli import KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY, is_known_non_job_url
+
+    false_positive_urls = {
+        "AQR Capital Management": "https://www.aqr.com/Insights/Research",
+        "Akuna Capital": "https://akunacapital.com/what-we-do/quant/",
+        "Aspect Capital": "https://www.aspectcapital.com/insight/rcm-alternatives-podcast-with-christopher-reeve/",
+        "Balyasny Asset Management": "https://www.bamfunds.com/how-we-work/investment",
+        "Goldman Sachs": "https://www.goldmansachs.com/careers/our-firm/asset-management",
+        "JPMorgan Chase": "https://www.jpmorgan.com/insights/global-research",
+        "Millennium Management": "https://www.mlp.com/people/investment-professionals/",
+        "PanAgora Asset Management": "https://www.panagora.com/insights/?scrolled=1",
+        "WorldQuant": "https://www.worldquant.com/ideas/worldquant-announces-completion-of-inaugural-global-alphathon-competition/",
+    }
+
+    for company, url in false_positive_urls.items():
+        patterns = KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY[company]
+        assert any(pattern in url for pattern in patterns), company
+        assert is_known_non_job_url(company, url) is True
+
+    assert (
+        is_known_non_job_url("IMC Trading", "https://www.imc.com/us/careers/jobs/4382558101")
+        is False
+    )
+    assert is_known_non_job_url("WorldQuant", "https://www.worldquantfoundry.com/") is True
+    assert is_known_non_job_url("WorldQuant", "https://www.wqu.edu/") is True
+    assert is_known_non_job_url("WorldQuant", "https://worldquantventures.com/") is True
 
 
 def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> None:
@@ -244,9 +277,7 @@ def test_eval_pending_repairs_dirty_titles_and_reevaluates(tmp_path: Path) -> No
         assert session.query(Eval).count() == 2
 
 
-def test_crawl_command_fetches_filters_stores_and_records_run(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_crawl_command_fetches_filters_stores_and_records_run(tmp_path: Path, monkeypatch) -> None:
     from quant_job_tracker import cli
 
     db_path = tmp_path / "qjt.sqlite3"
@@ -457,7 +488,9 @@ def test_crawl_command_uses_interactive_browser_adapter(tmp_path: Path, monkeypa
 
     monkeypatch.setattr(cli, "SEEDS", [seed])
     monkeypatch.setattr(cli, "GenericAdapter", FakeGenericAdapter)
-    monkeypatch.setattr(cli, "InteractiveBrowserAdapter", FakeInteractiveBrowserAdapter, raising=False)
+    monkeypatch.setattr(
+        cli, "InteractiveBrowserAdapter", FakeInteractiveBrowserAdapter, raising=False
+    )
 
     result = runner.invoke(
         cli.app, ["crawl", "--db", str(db_path), "--limit", "1", "--interactive-browser"]
@@ -837,7 +870,9 @@ def test_upsert_crawled_job_dedupes_same_company_by_jd_hash(tmp_path: Path) -> N
         db_path,
         company_id,
         "Test Fund",
-        JobCard(title="Quant Researcher", loc="Remote", url="https://example.com/job/1?src=canonical"),
+        JobCard(
+            title="Quant Researcher", loc="Remote", url="https://example.com/job/1?src=canonical"
+        ),
         jd,
         "second",
     )

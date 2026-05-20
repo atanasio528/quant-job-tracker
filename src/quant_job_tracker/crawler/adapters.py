@@ -33,9 +33,10 @@ class GenericAdapter:
             "/join-jane-street/open-roles"
         ):
             return self.fetch_jane_street_cards(url)
-        if parsed_url.netloc == "www.hudsonrivertrading.com" and parsed_url.path.rstrip(
-            "/"
-        ) == "/careers":
+        if (
+            parsed_url.netloc == "www.hudsonrivertrading.com"
+            and parsed_url.path.rstrip("/") == "/careers"
+        ):
             return self.fetch_hrt_cards(url)
         if parsed_url.netloc == "careers.twosigma.com" and parsed_url.path.startswith(
             "/careers/OpenRoles"
@@ -46,6 +47,14 @@ class GenericAdapter:
             or parsed_url.path.startswith("/careers/open-opportunities/")
         ):
             return self.fetch_citadel_cards(url)
+        if parsed_url.netloc == "www.flowtraders.com" and parsed_url.path.startswith(
+            "/careers/job-search"
+        ):
+            return self.fetch_flow_traders_cards()
+        if parsed_url.netloc == "www.imc.com" and parsed_url.path.startswith("/us/search-careers"):
+            return self.fetch_imc_cards(url)
+        if parsed_url.netloc == "careers.sig.com":
+            return self.fetch_sig_cards()
 
         html = self.fetch_html(url)
         return self.parse_cards(url, html)
@@ -59,6 +68,16 @@ class GenericAdapter:
             return parse_two_sigma_cards(base_url, soup)
         if parsed_base.netloc in {"www.citadel.com", "www.citadelsecurities.com"}:
             return parse_citadel_cards(base_url, soup)
+        if parsed_base.netloc == "job-boards.greenhouse.io":
+            return parse_greenhouse_job_board_cards(base_url, soup)
+        if parsed_base.netloc == "careers.blackrock.com" and parsed_base.path.startswith(
+            "/search-jobs"
+        ):
+            return parse_blackrock_job_search_cards(base_url, soup)
+        if parsed_base.netloc == "www.imc.com" and parsed_base.path.startswith(
+            "/us/search-careers"
+        ):
+            return parse_imc_job_search_cards(base_url, soup)
 
         cards: list[JobCard] = []
         seen_urls: set[str] = set()
@@ -151,11 +170,11 @@ class GenericAdapter:
                 content = str(payload.get("content") or "")
                 if not content.strip():
                     break
-                cards.extend(
-                    parse_citadel_cards(url, BeautifulSoup(content, "html.parser"))
-                )
+                cards.extend(parse_citadel_cards(url, BeautifulSoup(content, "html.parser")))
                 found_posts = int(payload.get("found_posts") or 0)
-                post_per_page = int(payload.get("post_per_page") or payload.get("number_of_post") or 10)
+                post_per_page = int(
+                    payload.get("post_per_page") or payload.get("number_of_post") or 10
+                )
                 if page * post_per_page >= found_posts:
                     break
                 page += 1
@@ -171,9 +190,7 @@ class GenericAdapter:
                 client, "GET", f"{base}/static/position-directories.json"
             )
             positions_response.raise_for_status()
-            position_directories = {
-                str(position_id) for position_id in positions_response.json()
-            }
+            position_directories = {str(position_id) for position_id in positions_response.json()}
 
         cards: list[JobCard] = []
         for job in jobs:
@@ -225,6 +242,87 @@ class GenericAdapter:
             content = str(row.get("content") or "")
             if content:
                 cards.extend(parse_hrt_cards(url, BeautifulSoup(content, "html.parser")))
+        return dedupe_cards(cards)
+
+    def fetch_flow_traders_cards(self) -> list[JobCard]:
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+            response = request_with_retries(
+                client,
+                "GET",
+                "https://boards-api.greenhouse.io/v1/boards/flowtraders/jobs",
+            )
+            response.raise_for_status()
+            payload = response.json()
+
+        cards: list[JobCard] = []
+        for job in payload.get("jobs", []):
+            if not isinstance(job, dict):
+                continue
+            title = clean_card_title(str(job.get("title") or ""))
+            url = str(job.get("absolute_url") or "")
+            location = job.get("location")
+            loc = "Unknown"
+            if isinstance(location, dict):
+                loc = str(location.get("name") or "Unknown")
+            if title and url:
+                cards.append(JobCard(title=title, loc=loc, url=normalize_url(url, "")))
+        return dedupe_cards(cards)
+
+    def fetch_imc_cards(self, url: str) -> list[JobCard]:
+        cards: list[JobCard] = []
+        urls = [
+            url,
+            "https://www.imc.com/us/careers/experienced-roles/trading",
+        ]
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+            for page_url in urls:
+                response = request_with_retries(client, "GET", page_url)
+                response.raise_for_status()
+                cards.extend(
+                    parse_imc_job_search_cards(
+                        page_url, BeautifulSoup(response.text, "html.parser")
+                    )
+                )
+        return dedupe_cards(cards)
+
+    def fetch_sig_cards(self) -> list[JobCard]:
+        cards: list[JobCard] = []
+        keywords = (
+            "quantitative research",
+            "quantitative trading",
+            "trader",
+            "machine learning",
+        )
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+            for keyword in keywords:
+                response = request_with_retries(
+                    client,
+                    "GET",
+                    "https://careers.sig.com/api/jobs",
+                    params={"keywords": keyword, "limit": "50"},
+                )
+                response.raise_for_status()
+                payload = response.json()
+                for row in payload.get("jobs", []):
+                    data = row.get("data") if isinstance(row, dict) else None
+                    if not isinstance(data, dict):
+                        continue
+                    title = clean_card_title(str(data.get("title") or ""))
+                    slug = str(data.get("slug") or "")
+                    loc = str(
+                        data.get("full_location")
+                        or data.get("location_name")
+                        or data.get("short_location")
+                        or "Unknown"
+                    )
+                    if title and slug:
+                        cards.append(
+                            JobCard(
+                                title=title,
+                                loc=loc,
+                                url=f"https://careers.sig.com/jobs/{slug}",
+                            )
+                        )
         return dedupe_cards(cards)
 
     def fetch_html(self, url: str) -> str:
@@ -309,7 +407,9 @@ def parse_two_sigma_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
             for span in article.select(".paragraph_inner-span")
             if span.get_text(" ", strip=True)
         ]
-        loc = next((span for span in spans if "United States" in span), spans[0] if spans else "Unknown")
+        loc = next(
+            (span for span in spans if "United States" in span), spans[0] if spans else "Unknown"
+        )
         cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, link["href"])))
     return dedupe_cards(cards)
 
@@ -333,7 +433,9 @@ def parse_citadel_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
         href = link["href"].strip()
         if "/careers/details/" not in href:
             continue
-        title, loc = split_citadel_title_and_location(clean_card_title(link.get_text(" ", strip=True)))
+        title, loc = split_citadel_title_and_location(
+            clean_card_title(link.get_text(" ", strip=True))
+        )
         if title:
             cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, href)))
     return dedupe_cards(cards)
@@ -348,7 +450,9 @@ def parse_hrt_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
         title = clean_card_title(link.get_text(" ", strip=True))
         locations = [
             span.get_text(" ", strip=True)
-            for span in card.select(".hrt-card-meta-desktop ul.hrt-card-info-list:not(.second-list) span")
+            for span in card.select(
+                ".hrt-card-meta-desktop ul.hrt-card-info-list:not(.second-list) span"
+            )
             if span.get_text(" ", strip=True)
         ]
         cards.append(
@@ -359,6 +463,75 @@ def parse_hrt_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
             )
         )
     return dedupe_cards(cards)
+
+
+def parse_greenhouse_job_board_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
+    cards: list[JobCard] = []
+    for row in soup.select("tr.job-post"):
+        link = row.select_one("a[href*='/jobs/']")
+        if link is None:
+            continue
+        title_el = link.select_one(".body--medium")
+        loc_el = link.select_one(".body__secondary.body--metadata")
+        if title_el is None:
+            continue
+        for tag in title_el.select(".tag-container"):
+            tag.decompose()
+        title = clean_card_title(title_el.get_text(" ", strip=True))
+        loc = loc_el.get_text(" ", strip=True) if loc_el else "Unknown"
+        if title:
+            cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, link["href"])))
+    if cards:
+        return dedupe_cards(cards)
+
+    return parse_greenhouse_anchor_cards(base_url, soup)
+
+
+def parse_greenhouse_anchor_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
+    cards: list[JobCard] = []
+    for link in soup.find_all("a", href=True):
+        href = link["href"].strip()
+        if "/jobs/" not in href:
+            continue
+        title = clean_card_title(link.get_text(" ", strip=True))
+        if title:
+            cards.append(JobCard(title=title, loc="Unknown", url=normalize_url(base_url, href)))
+    return dedupe_cards(cards)
+
+
+def parse_blackrock_job_search_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
+    cards: list[JobCard] = []
+    for link in soup.find_all("a", href=True):
+        href = link["href"].strip()
+        path = urlparse(normalize_url(base_url, href)).path
+        if not path.startswith("/job/"):
+            continue
+        title, loc = split_blackrock_title_and_location(
+            clean_card_title(link.get_text(" ", strip=True))
+        )
+        if title:
+            cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, href)))
+    return dedupe_cards(cards)
+
+
+def parse_imc_job_search_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
+    cards: list[JobCard] = []
+    for link in soup.find_all("a", href=True):
+        href = link["href"].strip()
+        if "/us/careers/jobs/" not in href or href.endswith("/apply"):
+            continue
+        title = clean_card_title(link.get_text(" ", strip=True))
+        if title:
+            cards.append(JobCard(title=title, loc="Unknown", url=normalize_url(base_url, href)))
+    return dedupe_cards(cards)
+
+
+def split_blackrock_title_and_location(text: str) -> tuple[str, str]:
+    if " Location: " not in text:
+        return text, "Unknown"
+    title, rest = text.split(" Location: ", 1)
+    loc = rest.split(" Team: ", 1)[0].split(" Additional Locations: ", 1)[0].strip()
+    return title.strip(), loc or "Unknown"
 
 
 def split_citadel_title_and_location(text: str) -> tuple[str, str]:

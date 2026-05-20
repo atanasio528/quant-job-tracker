@@ -54,7 +54,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Rokos Capital Management: https://www.rokoscapital.com/careers/
 - Tudor Investment Corporation: https://www.tudor.com/careers/
 - Aquatic Capital Management: https://aquatic.com/careers/
-- Voloridge: https://www.voloridge.com/careers/
+- Voloridge: https://www.voloridge.com/join-our-team
 - Kepos Capital: https://www.keposcapital.com/careers/
 - Walleye Capital: https://www.walleyecapital.com/careers/
 - Paloma Partners: https://www.paloma.com/careers/
@@ -70,11 +70,11 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Citadel Securities: https://www.citadelsecurities.com/careers/open-opportunities/
 - Susquehanna International Group: https://careers.sig.com/
 - Optiver: https://optiver.com/working-at-optiver/career-opportunities/
-- IMC Trading: https://www.imc.com/us/careers/jobs/
+- IMC Trading: https://www.imc.com/us/search-careers
 - DRW: https://drw.com/work-at-drw/listings
 - Jump Trading: https://www.jumptrading.com/careers/
 - Tower Research Capital: https://www.tower-research.com/open-positions/
-- XTX Markets: https://www.xtxmarkets.com/careers/
+- XTX Markets: https://job-boards.greenhouse.io/xtxmarketstechnologies
 - Virtu Financial: https://www.virtu.com/careers/
 - Flow Traders: https://www.flowtraders.com/careers/job-search/
 - Akuna Capital: https://akunacapital.com/careers
@@ -98,7 +98,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 
 ### Asset Management (5)
 - Arrowstreet Capital: https://www.arrowstreetcapital.com/careers/
-- BlackRock: https://careers.blackrock.com/
+- BlackRock: https://careers.blackrock.com/search-jobs?k=quant
 - Acadian Asset Management: https://www.acadian-asset.com/careers
 - PanAgora Asset Management: https://www.panagora.com/careers/
 - Dimensional Fund Advisors: https://www.dimensional.com/us-en/careers
@@ -113,7 +113,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Cubist Systematic Strategies: https://careers.point72.com/ | trusted patterns: `careers.point72.com`, `CSJobDetail`, `CSCareerSearch`, `focus=Systematic`. Cubist roles are listed through Point72 careers.
 - Millennium Management: https://www.mlp.com/careers/ | trusted patterns: `mlp.eightfold.ai/careers`, `pid=`. Official careers page links into Millennium's Eightfold job portal.
 - Squarepoint Capital: https://www.squarepoint-capital.com/open-opportunities | trusted patterns: `/open-opportunities`. Official open opportunities page.
-- Susquehanna International Group: https://careers.sig.com/ | trusted patterns: `careers.sig.com`. Official SIG careers portal.
+- Susquehanna International Group: https://careers.sig.com/ | trusted patterns: `careers.sig.com`, `/api/jobs`, `/jobs/`. Official SIG careers portal; the crawler uses the official Jibe `/api/jobs` endpoint for quant search terms.
 - Optiver: https://optiver.com/working-at-optiver/career-opportunities/ | trusted patterns: `/working-at-optiver/career-opportunities/`. Official career opportunities page; reject `/career-hub/` article links.
 - DRW: https://drw.com/work-at-drw/listings | trusted patterns: `/work-at-drw/listings/`, `/work-at-drw/listings`. Official DRW listings page.
 - Jump Trading: https://www.jumptrading.com/careers/ | trusted patterns: `/careers/`. Official careers page; reject `/trading` and homepage links.
@@ -133,8 +133,8 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Bank of America: https://careers.bankofamerica.com/ | trusted patterns: `careers.bankofamerica.com`. Official Bank of America careers portal.
 - Balyasny Asset Management: https://www.bamfunds.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Qube Research & Technologies: https://www.qube-rt.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
-- IMC Trading: https://www.imc.com/us/careers/jobs/ | trusted patterns: `/us/careers/jobs`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
-- XTX Markets: https://www.xtxmarkets.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- IMC Trading: https://www.imc.com/us/search-careers | trusted patterns: `/us/search-careers`, `/us/careers/jobs/`. Official IMC job-search page; job detail links use `/us/careers/jobs/`.
+- XTX Markets: https://job-boards.greenhouse.io/xtxmarketstechnologies | trusted patterns: `job-boards.greenhouse.io/xtxmarketstechnologies/jobs/`. Official XTX careers page links to this Greenhouse board.
 - Virtu Financial: https://www.virtu.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Flow Traders: https://www.flowtraders.com/careers/job-search/ | trusted patterns: `/careers/job-search/`, `/careers/`. Official job-search surface linked from the careers page; `/careers/jobs` can return 404.
 - Old Mission: https://www.oldmissioncapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
@@ -171,7 +171,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Rokos Capital Management: https://www.rokoscapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Tudor Investment Corporation: https://www.tudor.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Aquatic Capital Management: https://aquatic.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
-- Voloridge: https://www.voloridge.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- Voloridge: https://www.voloridge.com/join-our-team | trusted patterns: `/join-our-team`, `voloridge-investment-management.hiringthing.com/job/`. Official join-our-team page; live job postings link to HiringThing.
 - Arrowstreet Capital: https://www.arrowstreetcapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Kepos Capital: https://www.keposcapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Walleye Capital: https://www.walleyecapital.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
@@ -181,6 +181,6 @@ Every target company must belong to exactly one of these evaluator categories. U
 - LMR Partners: https://www.lmrpartners.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Quadrature: https://quadrature.ai/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Teza Technologies: https://www.teza.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
-- BlackRock: https://careers.blackrock.com/ | trusted patterns: `careers.blackrock.com`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- BlackRock: https://careers.blackrock.com/search-jobs?k=quant | trusted patterns: `careers.blackrock.com/search-jobs`, `careers.blackrock.com/job/`. Official BlackRock jobs search scoped to quant; reject career blog links.
 - Acadian Asset Management: https://www.acadian-asset.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Dimensional Fund Advisors: https://www.dimensional.com/us-en/careers | trusted patterns: `/us-en/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.

@@ -19,12 +19,14 @@ def test_generic_adapter_extracts_links_from_html() -> None:
     adapter = GenericAdapter()
     cards = adapter.parse_cards("https://example.com/careers", html)
 
-    assert JobCard(
-        title="Quantitative Researcher", loc="Unknown", url="https://example.com/jobs/1"
-    ) in cards
-    assert JobCard(
-        title="Compliance Analyst", loc="Unknown", url="https://example.com/jobs/2"
-    ) in cards
+    assert (
+        JobCard(title="Quantitative Researcher", loc="Unknown", url="https://example.com/jobs/1")
+        in cards
+    )
+    assert (
+        JobCard(title="Compliance Analyst", loc="Unknown", url="https://example.com/jobs/2")
+        in cards
+    )
 
 
 def test_generic_adapter_ignores_non_http_links_with_relevant_keywords() -> None:
@@ -41,9 +43,7 @@ def test_generic_adapter_ignores_non_http_links_with_relevant_keywords() -> None
     adapter = GenericAdapter()
     cards = adapter.parse_cards("https://example.com/careers", html)
 
-    assert cards == [
-        JobCard(title="Quant Trader", loc="Unknown", url="https://example.com/jobs/1")
-    ]
+    assert cards == [JobCard(title="Quant Trader", loc="Unknown", url="https://example.com/jobs/1")]
 
 
 def test_generic_adapter_ignores_blank_hrefs_with_relevant_keywords() -> None:
@@ -57,9 +57,7 @@ def test_generic_adapter_ignores_blank_hrefs_with_relevant_keywords() -> None:
     adapter = GenericAdapter()
     cards = adapter.parse_cards("https://example.com/careers", html)
 
-    assert cards == [
-        JobCard(title="Quant Trader", loc="Unknown", url="https://example.com/jobs/1")
-    ]
+    assert cards == [JobCard(title="Quant Trader", loc="Unknown", url="https://example.com/jobs/1")]
 
 
 def test_generic_adapter_deduplicates_cards_by_absolute_url() -> None:
@@ -180,6 +178,221 @@ def test_adapter_parses_two_sigma_open_roles_and_ignores_marketing_links() -> No
             loc="United States - NY New York",
             url="https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Data-Scientist-Campus-Full-Time/13662",
         )
+    ]
+
+
+def test_adapter_parses_greenhouse_job_board_rows_with_locations() -> None:
+    html = """
+    <html><body>
+      <table>
+        <tr class="job-post">
+          <td class="cell">
+            <a href="https://job-boards.greenhouse.io/xtxmarketstechnologies/jobs/6274458003">
+              <p class="body body--medium">AI Research Internship - XTY Labs</p>
+              <p class="body body__secondary body--metadata">New York</p>
+            </a>
+          </td>
+        </tr>
+        <tr class="job-post">
+          <td class="cell">
+            <a href="https://job-boards.greenhouse.io/xtxmarketstechnologies/jobs/7727030003">
+              <p class="body body--medium">Software Engineer - Trading Data Technology</p>
+              <p class="body body__secondary body--metadata">London, England, United Kingdom</p>
+            </a>
+          </td>
+        </tr>
+      </table>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://job-boards.greenhouse.io/xtxmarketstechnologies", html)
+
+    assert cards == [
+        JobCard(
+            title="AI Research Internship - XTY Labs",
+            loc="New York",
+            url="https://job-boards.greenhouse.io/xtxmarketstechnologies/jobs/6274458003",
+        ),
+        JobCard(
+            title="Software Engineer - Trading Data Technology",
+            loc="London, England, United Kingdom",
+            url="https://job-boards.greenhouse.io/xtxmarketstechnologies/jobs/7727030003",
+        ),
+    ]
+
+
+def test_adapter_parses_blackrock_job_search_and_rejects_career_blogs() -> None:
+    html = """
+    <html><body>
+      <a href="/job/new-york/security-modeling-quant-developer-associate/45831/1">
+        Security Modeling Quant Developer - Associate
+        Location: New York, NY
+        Team: Financial Engineering
+      </a>
+      <a href="/blog-samara-cohen-chief-investment-officer-eii">
+        Samara Cohen: BlackRock's Newly Named Chief Investment Officer of EII
+      </a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://careers.blackrock.com/search-jobs/quant", html)
+
+    assert cards == [
+        JobCard(
+            title="Security Modeling Quant Developer - Associate",
+            loc="New York, NY",
+            url="https://careers.blackrock.com/job/new-york/security-modeling-quant-developer-associate/45831/1",
+        )
+    ]
+
+
+def test_adapter_parses_imc_job_search_and_rejects_marketing_links() -> None:
+    html = """
+    <html><body>
+      <a href="/us/strategic-investments">Strategic Investments</a>
+      <a href="/us/careers/jobs/4382558101">
+        Quantitative Researcher – Equities
+        Experienced
+        Trading
+        Chicago, New York
+      </a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://www.imc.com/us/search-careers", html)
+
+    assert cards == [
+        JobCard(
+            title="Quantitative Researcher – Equities Experienced Trading Chicago, New York",
+            loc="Unknown",
+            url="https://www.imc.com/us/careers/jobs/4382558101",
+        )
+    ]
+
+
+@respx.mock
+def test_adapter_fetches_imc_search_and_trading_surfaces() -> None:
+    search_html = """
+    <html><body>
+      <a href="/us/careers/jobs/4608590101">Graduate Broker Trader Graduate Trading Chicago</a>
+    </body></html>
+    """
+    trading_html = """
+    <html><body>
+      <a href="/us/careers/jobs/4382558101">
+        Quantitative Researcher – Equities Experienced Trading Chicago, New York
+      </a>
+      <a href="/us/careers/jobs/4608590101">Graduate Broker Trader Graduate Trading Chicago</a>
+    </body></html>
+    """
+    respx.get("https://www.imc.com/us/search-careers").mock(
+        return_value=httpx.Response(200, text=search_html)
+    )
+    respx.get("https://www.imc.com/us/careers/experienced-roles/trading").mock(
+        return_value=httpx.Response(200, text=trading_html)
+    )
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards("https://www.imc.com/us/search-careers")
+
+    assert cards == [
+        JobCard(
+            title="Graduate Broker Trader Graduate Trading Chicago",
+            loc="Unknown",
+            url="https://www.imc.com/us/careers/jobs/4608590101",
+        ),
+        JobCard(
+            title="Quantitative Researcher – Equities Experienced Trading Chicago, New York",
+            loc="Unknown",
+            url="https://www.imc.com/us/careers/jobs/4382558101",
+        ),
+    ]
+
+
+@respx.mock
+def test_adapter_fetches_sig_jobs_from_official_api() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        keyword = request.url.params.get("keywords")
+        jobs = {
+            "quantitative research": [
+                {
+                    "data": {
+                        "slug": "9438",
+                        "title": "Quantitative Researcher – Master's: 2026",
+                        "full_location": "New York, New York, United States",
+                    }
+                }
+            ],
+            "trader": [
+                {
+                    "data": {
+                        "slug": "10717",
+                        "title": "Quantitative Trader Internship: Summer 2027",
+                        "full_location": "Bala Cynwyd (Philadelphia Area), Pennsylvania, United States",
+                    }
+                }
+            ],
+        }.get(keyword, [])
+        return httpx.Response(200, json={"jobs": jobs})
+
+    respx.get("https://careers.sig.com/api/jobs").mock(side_effect=respond)
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards("https://careers.sig.com/")
+
+    assert cards == [
+        JobCard(
+            title="Quantitative Researcher – Master's: 2026",
+            loc="New York, New York, United States",
+            url="https://careers.sig.com/jobs/9438",
+        ),
+        JobCard(
+            title="Quantitative Trader Internship: Summer 2027",
+            loc="Bala Cynwyd (Philadelphia Area), Pennsylvania, United States",
+            url="https://careers.sig.com/jobs/10717",
+        ),
+    ]
+
+
+@respx.mock
+def test_adapter_fetches_flow_traders_from_official_greenhouse_api() -> None:
+    respx.get("https://boards-api.greenhouse.io/v1/boards/flowtraders/jobs").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "jobs": [
+                    {
+                        "title": "Trading Intern",
+                        "absolute_url": "https://job-boards.greenhouse.io/flowtraders/jobs/1",
+                        "location": {"name": "New York"},
+                    },
+                    {
+                        "title": "Business Support Analyst",
+                        "absolute_url": "https://job-boards.greenhouse.io/flowtraders/jobs/2",
+                        "location": {"name": "Amsterdam"},
+                    },
+                ]
+            },
+        )
+    )
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards("https://www.flowtraders.com/careers/job-search/")
+
+    assert cards == [
+        JobCard(
+            title="Trading Intern",
+            loc="New York",
+            url="https://job-boards.greenhouse.io/flowtraders/jobs/1",
+        ),
+        JobCard(
+            title="Business Support Analyst",
+            loc="Amsterdam",
+            url="https://job-boards.greenhouse.io/flowtraders/jobs/2",
+        ),
     ]
 
 

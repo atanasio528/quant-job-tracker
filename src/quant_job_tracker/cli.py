@@ -7,7 +7,11 @@ import httpx
 from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH, POLICY_DIR
-from quant_job_tracker.crawler.adapters import CareerPageBlockedError, GenericAdapter, clean_stored_title
+from quant_job_tracker.crawler.adapters import (
+    CareerPageBlockedError,
+    GenericAdapter,
+    clean_stored_title,
+)
 from quant_job_tracker.crawler.categories import category_for_group
 from quant_job_tracker.crawler.filters import keep_job_card
 from quant_job_tracker.crawler.interactive_browser import InteractiveBrowserAdapter, html_to_text
@@ -30,6 +34,10 @@ app = typer.Typer(name="qjt")
 EVAL_MODEL = "heuristic-v2"
 POLICY_VER = "v1"
 KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY = {
+    "AQR Capital Management": ("https://www.aqr.com/Insights/",),
+    "Akuna Capital": ("https://akunacapital.com/what-we-do/",),
+    "Aspect Capital": ("https://www.aspectcapital.com/insight/",),
+    "Balyasny Asset Management": ("https://www.bamfunds.com/how-we-work/",),
     "Citadel": (
         "https://www.citadel.com/what-we-do/",
         "https://www.citadel.com/careers/quantitative-research/",
@@ -39,11 +47,28 @@ KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY = {
         "https://www.citadelsecurities.com/careers/quantitative-research/",
     ),
     "D. E. Shaw": ("https://www.deshaw.com/what-we-do/",),
+    "Goldman Sachs": ("https://www.goldmansachs.com/careers/our-firm/",),
+    "JPMorgan Chase": ("https://www.jpmorgan.com/insights/",),
+    "Millennium Management": (
+        "https://www.mlp.com/people/",
+        "https://mlp.eightfold.ai/careers?Department=trading",
+    ),
+    "PanAgora Asset Management": ("https://www.panagora.com/insights/",),
     "Two Sigma": (
         "https://www.twosigma.com/businesses/",
         "https://www.twosigma.com/careers/quantitative-research-data-science/",
     ),
+    "WorldQuant": (
+        "https://www.worldquant.com/ideas/",
+        "https://www.worldquantfoundry.com/",
+        "https://www.wqu.edu/",
+        "https://worldquantventures.com/",
+    ),
 }
+
+
+def is_known_non_job_url(company: str, url: str) -> bool:
+    return any(pattern in url for pattern in KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY.get(company, ()))
 
 
 @app.command()
@@ -91,6 +116,8 @@ def _crawl_seeds(
 
             jobs_found += len(cards)
             for card in cards:
+                if is_known_non_job_url(seed.name, card.url):
+                    continue
                 keep, crawl_note = keep_job_card(seed.name, card.title, card.loc)
                 if not keep:
                     continue
@@ -176,7 +203,9 @@ def crawl(
             )
         )
         session.commit()
-    typer.echo(f"Crawled {companies_crawled} companies, found {jobs_found} jobs, stored {jobs_stored} jobs")
+    typer.echo(
+        f"Crawled {companies_crawled} companies, found {jobs_found} jobs, stored {jobs_stored} jobs"
+    )
 
 
 @app.command("import-saved-html")
@@ -271,7 +300,9 @@ def sources(db: Path = DEFAULT_DB_PATH) -> None:
             .all()
         )
         for row, company in rows:
-            category = category_for_group(company.group) if company.group != "unknown" else "Unknown"
+            category = (
+                category_for_group(company.group) if company.group != "unknown" else "Unknown"
+            )
             typer.echo(
                 f"{row.company}\t{category}\t{row.source_type}\t{row.confidence}\t{row.source_url}"
             )
@@ -349,4 +380,6 @@ def policy_report(db: Path = DEFAULT_DB_PATH) -> None:
 
 @app.command()
 def web(host: str = "127.0.0.1", port: int = 8000) -> None:
-    uvicorn.run("quant_job_tracker.web.app:create_app", factory=True, host=host, port=port, reload=True)
+    uvicorn.run(
+        "quant_job_tracker.web.app:create_app", factory=True, host=host, port=port, reload=True
+    )
