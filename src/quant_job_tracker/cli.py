@@ -99,6 +99,22 @@ def _crawl_seeds(
                     upsert_crawled_job(db, company_id, seed.name, card, jd, crawl_note)
                     jobs_stored += 1
                 except CareerPageBlockedError as exc:
+                    if seed.name in {"Citadel", "Citadel Securities"}:
+                        jd = blocked_detail_listing_jd(seed.name, card)
+                        upsert_crawled_job(
+                            db,
+                            company_id,
+                            seed.name,
+                            card,
+                            jd,
+                            "kept: official listing row; detail blocked by provider",
+                        )
+                        jobs_stored += 1
+                        issues["bot_blocked"].append(
+                            f"{seed.name} {card.url}: Detail page blocked; "
+                            "stored official listing row"
+                        )
+                        continue
                     issues["bot_blocked"].append(f"{seed.name} {card.url}: {exc}")
                     continue
                 except Exception as exc:
@@ -179,18 +195,23 @@ def import_saved_html(
     html_source = html.read_text(encoding="utf-8")
     adapter = GenericAdapter()
     cards = adapter.parse_cards(url, html_source)
+    used_ajax_listing = False
+    if not cards and company in {"Citadel", "Citadel Securities"}:
+        cards = adapter.fetch_cards(url)
+        used_ajax_listing = True
     jd = html_to_text(html_source)
     jobs_stored = 0
     for card in cards:
         keep, crawl_note = keep_job_card(seed.name, card.title, card.loc)
         if not keep:
             continue
+        jd_for_card = blocked_detail_listing_jd(seed.name, card) if used_ajax_listing else jd
         upsert_crawled_job(
             db,
             company_id,
             seed.name,
             card,
-            jd,
+            jd_for_card,
             f"Imported from saved official HTML. {crawl_note}",
         )
         jobs_stored += 1
@@ -214,6 +235,14 @@ def _seed_for_company(company: str, fallback_url: str) -> CompanySeed:
         if seed.name == company:
             return seed
     return CompanySeed(company, "unknown", fallback_url, "saved_html")
+
+
+def blocked_detail_listing_jd(company: str, card) -> str:
+    return (
+        f"{card.title} | {company} official listing. Location: {card.loc}. "
+        f"Official detail URL: {card.url}. Detail page blocked by provider during crawl; "
+        "use the official link for the full job description."
+    )
 
 
 @app.command()

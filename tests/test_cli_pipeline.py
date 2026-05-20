@@ -472,6 +472,51 @@ def test_crawl_command_uses_interactive_browser_adapter(tmp_path: Path, monkeypa
         assert job.title == "Quantitative Researcher – PhD Intern (US)"
 
 
+def test_crawl_command_stores_citadel_listing_when_detail_is_blocked(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from quant_job_tracker import cli
+
+    db_path = tmp_path / "qjt.sqlite3"
+    seed = CompanySeed(
+        name="Citadel",
+        group="multi_manager",
+        career_url="https://www.citadel.com/careers/open-opportunities/",
+        ats="generic",
+    )
+
+    class FakeAdapter:
+        def fetch_cards(self, url: str) -> list[JobCard]:
+            assert url == seed.career_url
+            return [
+                JobCard(
+                    title="Quantitative Researcher – PhD Intern (US)",
+                    loc="Greenwich, Miami, New York",
+                    url="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+                )
+            ]
+
+        def fetch_jd(self, url: str) -> str:
+            raise cli.CareerPageBlockedError("blocked by Cloudflare challenge")
+
+    monkeypatch.setattr(cli, "SEEDS", [seed])
+    monkeypatch.setattr(cli, "GenericAdapter", FakeAdapter)
+
+    result = runner.invoke(cli.app, ["crawl", "--db", str(db_path), "--limit", "1"])
+
+    assert result.exit_code == 0
+    assert "Crawled 1 companies, found 1 jobs, stored 1 jobs" in result.output
+    with create_session(db_path) as session:
+        job = session.query(Job).one()
+        assert job.company == "Citadel"
+        assert job.title == "Quantitative Researcher – PhD Intern (US)"
+        assert "Detail page blocked by provider" in job.jd
+        assert "official listing row" in (job.crawl_note or "")
+        run = session.query(Run).one()
+        assert run.status == "partial"
+        assert "Detail page blocked; stored official listing row" in (run.error or "")
+
+
 def test_import_saved_html_stores_jobs_from_official_listing(tmp_path: Path) -> None:
     from quant_job_tracker.cli import app
 
@@ -519,6 +564,61 @@ def test_import_saved_html_stores_jobs_from_official_listing(tmp_path: Path) -> 
         assert run.status == "success"
         assert run.jobs_found == 1
         assert run.jobs_stored == 1
+
+
+def test_import_saved_html_fetches_official_ajax_when_saved_shell_has_empty_listing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from quant_job_tracker import cli
+    from quant_job_tracker.cli import app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    html_path = tmp_path / "citadel.html"
+    html_path.write_text(
+        """
+        <html><body>
+          <form id="ajax-careers-search-filter" action="https://www.citadel.com/wp-admin/admin-ajax.php">
+            <input type="hidden" name="action" value="careers_listing_filter" />
+          </form>
+          <div id="careers-table-filter-wrap"></div>
+        </body></html>
+        """,
+        encoding="utf-8",
+    )
+
+    class FakeAdapter:
+        def parse_cards(self, base_url: str, html: str) -> list[JobCard]:
+            return []
+
+        def fetch_cards(self, url: str) -> list[JobCard]:
+            assert url == "https://www.citadel.com/careers/open-opportunities/"
+            return [
+                JobCard(
+                    title="Quantitative Researcher – PhD Intern (US)",
+                    loc="Greenwich, Miami, New York",
+                    url="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+                )
+            ]
+
+    monkeypatch.setattr(cli, "GenericAdapter", FakeAdapter)
+
+    result = runner.invoke(
+        app,
+        [
+            "import-saved-html",
+            "--db",
+            str(db_path),
+            "--company",
+            "Citadel",
+            "--url",
+            "https://www.citadel.com/careers/open-opportunities/",
+            "--html",
+            str(html_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Imported 1 jobs from saved HTML" in result.output
 
 
 def test_crawl_command_breaks_out_404_seed_urls(tmp_path: Path, monkeypatch) -> None:

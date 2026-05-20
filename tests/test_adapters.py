@@ -205,6 +205,94 @@ def test_adapter_parses_citadel_detail_links_only() -> None:
     ]
 
 
+def test_adapter_parses_citadel_ajax_listing_cards() -> None:
+    html = """
+    <html><body>
+      <a
+        class="careers-listing-card js-career-card js-apply-now"
+        href="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/"
+        data-position="Quantitative Researcher – PhD Intern (US)"
+      >
+        <div class="careers-listing-card__title">
+          <h2>Quantitative Researcher – PhD Intern (US)</h2>
+        </div>
+        <span class="careers-listing-card__location">Greenwich, Miami, New York</span>
+        <span>Apply Now</span>
+      </a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://www.citadel.com/careers/open-opportunities/", html)
+
+    assert cards == [
+        JobCard(
+            title="Quantitative Researcher – PhD Intern (US)",
+            loc="Greenwich, Miami, New York",
+            url="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+        )
+    ]
+
+
+@respx.mock
+def test_adapter_fetches_citadel_cards_from_official_ajax() -> None:
+    first_page = """
+    <div class="career-listing__container">
+      <a class="careers-listing-card" href="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/" data-position="Quantitative Researcher – PhD Intern (US)">
+        <span class="careers-listing-card__location">Greenwich, Miami, New York</span>
+      </a>
+    </div>
+    """
+    second_page = """
+    <div class="career-listing__container">
+      <a class="careers-listing-card" href="https://www.citadel.com/careers/details/quantitative-research-analyst-intern-bs-ms-us/" data-position="Quantitative Research Analyst Intern – BS/MS (US)">
+        <span class="careers-listing-card__location">Miami, New York</span>
+      </a>
+    </div>
+    """
+    route = respx.post("https://www.citadel.com/wp-admin/admin-ajax.php").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json={
+                    "number_of_post": 1,
+                    "found_posts": 2,
+                    "post_per_page": 1,
+                    "page_number": 1,
+                    "content": first_page,
+                },
+            ),
+            httpx.Response(
+                200,
+                json={
+                    "number_of_post": 1,
+                    "found_posts": 2,
+                    "post_per_page": 1,
+                    "page_number": 2,
+                    "content": second_page,
+                },
+            ),
+        ]
+    )
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards("https://www.citadel.com/careers/open-opportunities/")
+
+    assert cards == [
+        JobCard(
+            title="Quantitative Researcher – PhD Intern (US)",
+            loc="Greenwich, Miami, New York",
+            url="https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+        ),
+        JobCard(
+            title="Quantitative Research Analyst Intern – BS/MS (US)",
+            loc="Miami, New York",
+            url="https://www.citadel.com/careers/details/quantitative-research-analyst-intern-bs-ms-us/",
+        ),
+    ]
+    assert route.call_count == 2
+
+
 @respx.mock
 def test_adapter_fetches_jane_street_jobs_from_official_json() -> None:
     respx.get("https://www.janestreet.com/jobs/main.json").mock(

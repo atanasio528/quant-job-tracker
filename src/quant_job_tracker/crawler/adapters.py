@@ -41,6 +41,11 @@ class GenericAdapter:
             "/careers/OpenRoles"
         ):
             return self.fetch_paginated_cards(url)
+        if parsed_url.netloc in {"www.citadel.com", "www.citadelsecurities.com"} and (
+            parsed_url.path.rstrip("/") == "/careers/open-opportunities"
+            or parsed_url.path.startswith("/careers/open-opportunities/")
+        ):
+            return self.fetch_citadel_cards(url)
 
         html = self.fetch_html(url)
         return self.parse_cards(url, html)
@@ -117,6 +122,43 @@ class GenericAdapter:
                     and href not in pages_to_visit
                 ):
                     pages_to_visit.append(href)
+        return dedupe_cards(cards)
+
+    def fetch_citadel_cards(self, url: str, max_pages: int = 8) -> list[JobCard]:
+        cards: list[JobCard] = []
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+            page = 1
+            while page <= max_pages:
+                response = request_with_retries(
+                    client,
+                    "POST",
+                    "https://www.citadel.com/wp-admin/admin-ajax.php",
+                    data={
+                        "selected-job-sections": "388,389,387,390",
+                        "current_page": str(page),
+                        "sort_order": "DESC",
+                        "per_page": "10",
+                        "action": "careers_listing_filter",
+                    },
+                    headers={"Referer": url},
+                )
+                if response.status_code == 403:
+                    if is_cloudflare_challenge(response):
+                        raise CareerPageBlockedError("blocked by Cloudflare challenge")
+                    raise CareerPageBlockedError("blocked by career site with HTTP 403")
+                response.raise_for_status()
+                payload = response.json()
+                content = str(payload.get("content") or "")
+                if not content.strip():
+                    break
+                cards.extend(
+                    parse_citadel_cards(url, BeautifulSoup(content, "html.parser"))
+                )
+                found_posts = int(payload.get("found_posts") or 0)
+                post_per_page = int(payload.get("post_per_page") or payload.get("number_of_post") or 10)
+                if page * post_per_page >= found_posts:
+                    break
+                page += 1
         return dedupe_cards(cards)
 
     def fetch_jane_street_cards(self, url: str) -> list[JobCard]:
@@ -274,6 +316,19 @@ def parse_two_sigma_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
 
 def parse_citadel_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
     cards: list[JobCard] = []
+    for link in soup.select("a.careers-listing-card[href*='/careers/details/']"):
+        title = clean_card_title(
+            link.get("data-position", "")
+            or (link.select_one("h2").get_text(" ", strip=True) if link.select_one("h2") else "")
+            or link.get_text(" ", strip=True)
+        )
+        loc_el = link.select_one(".careers-listing-card__location")
+        loc = loc_el.get_text(" ", strip=True) if loc_el else "Unknown"
+        if title:
+            cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, link["href"])))
+    if cards:
+        return dedupe_cards(cards)
+
     for link in soup.find_all("a", href=True):
         href = link["href"].strip()
         if "/careers/details/" not in href:
