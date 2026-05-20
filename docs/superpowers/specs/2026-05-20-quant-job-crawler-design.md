@@ -286,7 +286,7 @@ Shows crawler and evaluator activity:
 The dedicated local project directory is:
 
 ```text
-/Users/yj2860/Documents/quant-job-tracker
+/Users/yj2860/Projects/quant-job-tracker
 ```
 
 The target GitHub repository should be private by default because the app may contain personal application notes and locally stored job data. The recommended repository name is:
