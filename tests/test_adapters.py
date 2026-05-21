@@ -60,6 +60,113 @@ def test_generic_adapter_ignores_blank_hrefs_with_relevant_keywords() -> None:
     assert cards == [JobCard(title="Quant Trader", loc="Unknown", url="https://example.com/jobs/1")]
 
 
+def test_gresearch_parser_uses_vacancy_cards_only() -> None:
+    html = """
+    <html><body>
+      <a href="/teams/quantitative-research">Quantitative research & machine learning</a>
+      <a href="https://www.gresearch.com/vacancies/data-scientist/" class="c-vacancy-result">
+        <span class="c-vacancy-result__title">Data Scientist</span>
+        <span class="c-vacancy-result__location">London</span>
+      </a>
+      <a href="https://www.gresearch.com/vacancies/quantitative-researcher-postgraduate/" class="c-vacancy-result">
+        <span class="c-vacancy-result__title">Quantitative Researcher – Postgraduate</span>
+        <span class="c-vacancy-result__location">London</span>
+      </a>
+      <a href="/news/ml-paper">Machine learning research update</a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards("https://www.gresearch.com/vacancies/", html)
+
+    assert cards == [
+        JobCard(
+            title="Data Scientist",
+            loc="London",
+            url="https://www.gresearch.com/vacancies/data-scientist/",
+        ),
+        JobCard(
+            title="Quantitative Researcher – Postgraduate",
+            loc="London",
+            url="https://www.gresearch.com/vacancies/quantitative-researcher-postgraduate/",
+        ),
+    ]
+
+
+@respx.mock
+def test_jpmorgan_adapter_fetches_cards_from_oracle_job_api() -> None:
+    api_route = respx.get(
+        "https://jpmc.fa.oraclecloud.com/hcmRestApi/resources/11.13.18.05/"
+        "recruitingCEJobRequisitions"
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "requisitionList": [
+                            {
+                                "Id": "210747267",
+                                "Title": "Quant Analytics Associate",
+                                "PrimaryLocation": "New York, NY, United States",
+                                "secondaryLocations": [
+                                    {"Name": "Jersey City, NJ, United States"},
+                                ],
+                            }
+                        ],
+                        "hasMore": False,
+                    }
+                ]
+            },
+        )
+    )
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards(
+        "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs"
+    )
+
+    assert api_route.called
+    assert cards == [
+        JobCard(
+            title="Quant Analytics Associate",
+            loc="New York, NY, United States; Jersey City, NJ, United States",
+            url="https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/210747267",
+        )
+    ]
+
+
+@respx.mock
+def test_jpmorgan_adapter_fetches_jd_from_oracle_detail_api() -> None:
+    detail_route = respx.get(
+        "https://jpmc.fa.oraclecloud.com/hcmRestApi/resources/11.13.18.05/"
+        "recruitingCEJobRequisitionDetails"
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "Title": "Quant Analytics Associate",
+                        "ExternalDescriptionStr": "<p>DESCRIPTION:</p><p>Build analytics.</p>",
+                        "CorporateDescriptionStr": "<p>Equal Opportunity Employer</p>",
+                    }
+                ]
+            },
+        )
+    )
+    adapter = GenericAdapter()
+
+    jd = adapter.fetch_jd(
+        "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/210747267"
+    )
+
+    assert detail_route.called
+    assert "Quant Analytics Associate" in jd
+    assert "DESCRIPTION: Build analytics." in jd
+    assert "Equal Opportunity Employer" in jd
+
+
 def test_generic_adapter_deduplicates_cards_by_absolute_url() -> None:
     html = """
     <html><body>

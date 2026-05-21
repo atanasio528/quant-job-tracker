@@ -167,7 +167,9 @@ SEEDS: list[CompanySeed] = [
     CompanySeed("Man Group", "quant_hedge_fund", "https://www.man.com/careers", "generic"),
     CompanySeed("Winton", "quant_hedge_fund", "https://www.winton.com/careers", "generic"),
     CompanySeed("WorldQuant", "quant_hedge_fund", "https://www.worldquant.com/careers/", "generic"),
-    CompanySeed("G-Research", "quant_hedge_fund", "https://www.gresearch.com/careers/", "generic"),
+    CompanySeed(
+        "G-Research", "quant_hedge_fund", "https://www.gresearch.com/vacancies/", "generic"
+    ),
     CompanySeed(
         "Capula Investment Management",
         "quant_hedge_fund",
@@ -283,7 +285,10 @@ SEEDS: list[CompanySeed] = [
         "Goldman Sachs", "sell_side_quant", "https://www.goldmansachs.com/careers/", "generic"
     ),
     CompanySeed(
-        "JPMorgan Chase", "sell_side_quant", "https://careers.jpmorgan.com/us/en/home", "generic"
+        "JPMorgan Chase",
+        "sell_side_quant",
+        "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs",
+        "oracle_cloud",
     ),
     CompanySeed(
         "Morgan Stanley",

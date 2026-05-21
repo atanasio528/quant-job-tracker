@@ -16,10 +16,15 @@ Current watchlist:
 - Laurion Capital: official careers URL failed with an SSL EOF error on the 2026-05-20 full run.
 - Eisler Capital: official careers hostname did not resolve in the local crawler on the 2026-05-20 full run.
 
+Recently resolved source issues:
+
+- G-Research: broad `/careers/` introduction page replaced with official `/vacancies/` job-card page; reject `/teams/`, `/news/`, `/nextgen/`, and `/vector/` rows as page noise.
+- JPMorgan Chase: generic career landing page replaced with the official Oracle Candidate Experience job portal and API-backed adapter.
+
 Latest full-run URL review queue:
 
 - Bad seed URL / 404: Maven Securities, Radix Trading, Mako Trading, Da Vinci Derivatives, WH Trading, Winton, Verition Fund Management, ExodusPoint, PDT Partners, The Voleon Group, AlphaGrep, Marshall Wace, Tudor Investment Corporation, Arrowstreet Capital, Kepos Capital, Walleye Capital, Paloma Partners, Dimensional Fund Advisors, Morgan Stanley.
-- Needs dedicated dynamic/manual adapter: Squarepoint Capital, Qube Research & Technologies, Millennium Management, Balyasny Asset Management, Akuna Capital, AQR Capital Management, Aspect Capital, Goldman Sachs, JPMorgan Chase, Citi, Bank of America.
+- Needs dedicated dynamic/manual adapter: Squarepoint Capital, Qube Research & Technologies, Millennium Management, Balyasny Asset Management, Akuna Capital, AQR Capital Management, Aspect Capital, Goldman Sachs, Citi, Bank of America.
 
 When reviewing full-pipeline runs, add companies to this watchlist if:
 

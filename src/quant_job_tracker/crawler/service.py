@@ -87,6 +87,35 @@ def upsert_company_job_source(db_path: Path, source: CompanyJobSourceSeed) -> No
         session.commit()
 
 
+def retire_missing_company_job_sources(
+    db_path: Path, sources: tuple[CompanyJobSourceSeed, ...]
+) -> int:
+    expected_urls_by_company: dict[str, set[str]] = {}
+    for source in sources:
+        expected_urls_by_company.setdefault(source.company, set()).add(source.source_url)
+
+    now = datetime.utcnow()
+    with create_session(db_path) as session:
+        rows = (
+            session.query(CompanyJobSource)
+            .filter(
+                CompanyJobSource.company.in_(expected_urls_by_company),
+                CompanyJobSource.active.is_(True),
+            )
+            .all()
+        )
+        retired = 0
+        for row in rows:
+            expected_urls = expected_urls_by_company[row.company]
+            if row.source_url in expected_urls:
+                continue
+            row.active = False
+            row.updated_at = now
+            retired += 1
+        session.commit()
+        return retired
+
+
 def upsert_crawled_job(
     db_path: Path,
     company_id: int,
@@ -102,9 +131,7 @@ def upsert_crawled_job(
         existing = session.query(Job).filter_by(url=card.url).one_or_none()
         if existing is None:
             existing = (
-                session.query(Job)
-                .filter_by(company_id=company_id, jd_hash=new_hash)
-                .one_or_none()
+                session.query(Job).filter_by(company_id=company_id, jd_hash=new_hash).one_or_none()
             )
         if existing:
             existing.title = title
@@ -164,9 +191,7 @@ def prune_jobs_matching_url_patterns(
         return 0
     with create_session(db_path) as session:
         jobs = session.query(Job).filter(Job.company_id == company_id).all()
-        bad_jobs = [
-            job for job in jobs if any(pattern in job.url for pattern in url_patterns)
-        ]
+        bad_jobs = [job for job in jobs if any(pattern in job.url for pattern in url_patterns)]
         if not bad_jobs:
             return 0
         job_ids = [job.id for job in bad_jobs]

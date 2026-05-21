@@ -131,6 +131,28 @@ The URL manager owns company-by-company job-source discovery before crawler chan
 - Verification status: verified_live
 - Crawl note: The old `/careers/` URL is only an intro/404-style page; the live job cards are on `Join Our Team` and link to HiringThing.
 
+### G-Research
+
+- Category: Hedge Funds
+- Source URL: https://www.gresearch.com/vacancies/
+- Entry URL: https://www.gresearch.com/careers/
+- Trusted URL patterns: `/vacancies/`, `gresearch.wd103.myworkdayjobs.com`
+- Reject URL patterns: `/careers/`, `/teams/`, `/news/`, `/nextgen/`, `/vector/`
+- Confidence: high
+- Verification status: verified_live
+- Crawl note: The broad careers page is a company introduction. The real live job cards are on `/vacancies/`, with detail pages such as `/vacancies/data-scientist/` and Workday apply links.
+
+### JPMorgan Chase
+
+- Category: Investment Banks
+- Entry URL: https://www.jpmorganchase.com/careers/explore-opportunities
+- Source URL: https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs
+- Trusted URL patterns: `jpmc.fa.oraclecloud.com`, `recruitingCEJobRequisitions`, `/job/`
+- Reject URL patterns: `jpmorgan.com/insights/`, `careers.jpmorgan.com/us/en/home`
+- Confidence: high
+- Verification status: verified_dynamic
+- Crawl note: The official JPMorganChase careers page links to the Oracle Candidate Experience portal. Use Oracle's `recruitingCEJobRequisitions` and `recruitingCEJobRequisitionDetails` endpoints for listing rows and stored job descriptions.
+
 ### XTX Markets
 
 - Category: Prop Trading

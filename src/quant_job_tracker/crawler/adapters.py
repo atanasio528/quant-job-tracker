@@ -13,6 +13,16 @@ BROWSER_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
 }
+JPMORGAN_SITE_NUMBER = "CX_1001"
+JPMORGAN_BASE_URL = "https://jpmc.fa.oraclecloud.com"
+JPMORGAN_UI_BASE_URL = "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001"
+JPMORGAN_SEARCH_KEYWORDS = (
+    "quant",
+    "quantitative research",
+    "trader",
+    "trading",
+    "research",
+)
 
 
 @dataclass(frozen=True)
@@ -55,6 +65,10 @@ class GenericAdapter:
             return self.fetch_imc_cards(url)
         if parsed_url.netloc == "careers.sig.com":
             return self.fetch_sig_cards()
+        if parsed_url.netloc == "jpmc.fa.oraclecloud.com" and parsed_url.path.startswith(
+            "/hcmUI/CandidateExperience/en/sites/CX_1001/jobs"
+        ):
+            return self.fetch_jpmorgan_cards()
 
         html = self.fetch_html(url)
         return self.parse_cards(url, html)
@@ -78,6 +92,8 @@ class GenericAdapter:
             "/us/search-careers"
         ):
             return parse_imc_job_search_cards(base_url, soup)
+        if parsed_base.netloc == "www.gresearch.com" and parsed_base.path.startswith("/vacancies"):
+            return parse_gresearch_cards(base_url, soup)
 
         cards: list[JobCard] = []
         seen_urls: set[str] = set()
@@ -325,6 +341,43 @@ class GenericAdapter:
                         )
         return dedupe_cards(cards)
 
+    def fetch_jpmorgan_cards(self, page_size: int = 50, max_pages: int = 4) -> list[JobCard]:
+        cards: list[JobCard] = []
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+            for keyword in JPMORGAN_SEARCH_KEYWORDS:
+                offset = 0
+                pages = 0
+                while pages < max_pages:
+                    response = request_with_retries(
+                        client,
+                        "GET",
+                        f"{JPMORGAN_BASE_URL}/hcmRestApi/resources/11.13.18.05/"
+                        "recruitingCEJobRequisitions",
+                        params={
+                            "onlyData": "true",
+                            "expand": "requisitionList.secondaryLocations",
+                            "finder": (
+                                "findReqs;"
+                                f"siteNumber={JPMORGAN_SITE_NUMBER},"
+                                f"limit={page_size},"
+                                f'keyword="{keyword}",'
+                                f"offset={offset}"
+                            ),
+                        },
+                    )
+                    response.raise_for_status()
+                    item = first_json_item(response.json())
+                    rows = item.get("requisitionList") if isinstance(item, dict) else []
+                    if not isinstance(rows, list) or not rows:
+                        break
+                    cards.extend(jpmorgan_cards_from_rows(rows))
+                    total = int(item.get("TotalJobsCount") or 0)
+                    offset += page_size
+                    pages += 1
+                    if offset >= total:
+                        break
+        return dedupe_cards(cards)
+
     def fetch_html(self, url: str) -> str:
         with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
             response = request_with_retries(client, "GET", url)
@@ -336,11 +389,39 @@ class GenericAdapter:
             return response.text
 
     def fetch_jd(self, url: str) -> str:
+        parsed_url = urlparse(url)
+        if parsed_url.netloc == "jpmc.fa.oraclecloud.com" and parsed_url.path.startswith(
+            "/hcmUI/CandidateExperience/en/sites/CX_1001/job/"
+        ):
+            return self.fetch_jpmorgan_jd(parsed_url.path.rsplit("/", 1)[-1])
         html = self.fetch_html(url)
-        soup = BeautifulSoup(html, "html.parser")
-        for tag in soup(["script", "style", "noscript"]):
-            tag.decompose()
-        return " ".join(soup.get_text(" ", strip=True).split())
+        return html_to_text(html)
+
+    def fetch_jpmorgan_jd(self, job_id: str) -> str:
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+            response = request_with_retries(
+                client,
+                "GET",
+                f"{JPMORGAN_BASE_URL}/hcmRestApi/resources/11.13.18.05/"
+                "recruitingCEJobRequisitionDetails",
+                params={
+                    "expand": "all",
+                    "onlyData": "true",
+                    "finder": f'ById;Id="{job_id}",siteNumber={JPMORGAN_SITE_NUMBER}',
+                },
+            )
+            response.raise_for_status()
+            item = first_json_item(response.json())
+        if not isinstance(item, dict):
+            return ""
+        fields = [
+            str(item.get("Title") or ""),
+            str(item.get("PrimaryLocation") or ""),
+            str(item.get("ExternalDescriptionStr") or ""),
+            str(item.get("CorporateDescriptionStr") or ""),
+            str(item.get("OrganizationDescriptionStr") or ""),
+        ]
+        return html_to_text(" | ".join(field for field in fields if field))
 
 
 def clean_card_title(raw_title: str) -> str:
@@ -526,6 +607,40 @@ def parse_imc_job_search_cards(base_url: str, soup: BeautifulSoup) -> list[JobCa
     return dedupe_cards(cards)
 
 
+def parse_gresearch_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
+    cards: list[JobCard] = []
+    for link in soup.select("a.c-vacancy-result[href*='/vacancies/']"):
+        title_el = link.select_one(".c-vacancy-result__title")
+        loc_el = link.select_one(".c-vacancy-result__location")
+        title = clean_card_title(
+            title_el.get_text(" ", strip=True) if title_el else link.get_text(" ", strip=True)
+        )
+        loc = loc_el.get_text(" ", strip=True) if loc_el else "Unknown"
+        if title:
+            cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, link["href"])))
+    return dedupe_cards(cards)
+
+
+def jpmorgan_cards_from_rows(rows: list[object]) -> list[JobCard]:
+    cards: list[JobCard] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        job_id = str(row.get("Id") or "").strip()
+        title = clean_card_title(str(row.get("Title") or ""))
+        if not job_id or not title:
+            continue
+        locations = [str(row.get("PrimaryLocation") or "").strip()]
+        secondary = row.get("secondaryLocations") or []
+        if isinstance(secondary, list):
+            for location in secondary:
+                if isinstance(location, dict):
+                    locations.append(str(location.get("Name") or "").strip())
+        loc = "; ".join(location for location in locations if location) or "Unknown"
+        cards.append(JobCard(title=title, loc=loc, url=f"{JPMORGAN_UI_BASE_URL}/job/{job_id}"))
+    return cards
+
+
 def split_blackrock_title_and_location(text: str) -> tuple[str, str]:
     if " Location: " not in text:
         return text, "Unknown"
@@ -557,6 +672,22 @@ def dedupe_cards(cards: list[JobCard]) -> list[JobCard]:
         seen_urls.add(card.url)
         deduped.append(card)
     return deduped
+
+
+def first_json_item(payload: object) -> object:
+    if not isinstance(payload, dict):
+        return None
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        return None
+    return items[0]
+
+
+def html_to_text(html: str) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    return " ".join(soup.get_text(" ", strip=True).split())
 
 
 def request_with_retries(

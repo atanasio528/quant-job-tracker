@@ -16,7 +16,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 
 ### Investment Banks (5)
 - Goldman Sachs: https://www.goldmansachs.com/careers/
-- JPMorgan Chase: https://careers.jpmorgan.com/us/en/home
+- JPMorgan Chase: https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs
 - Morgan Stanley: https://www.morganstanley.com/careers/career-opportunities-search
 - Citi: https://jobs.citi.com/
 - Bank of America: https://careers.bankofamerica.com/
@@ -36,7 +36,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Man Group: https://www.man.com/careers
 - Winton: https://www.winton.com/careers
 - WorldQuant: https://www.worldquant.com/careers/
-- G-Research: https://www.gresearch.com/careers/
+- G-Research: https://www.gresearch.com/vacancies/
 - Capula Investment Management: https://www.capulaglobal.com/careers/
 - Schonfeld: https://www.schonfeld.com/careers/
 - Verition Fund Management: https://www.verition.com/careers/
@@ -127,7 +127,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - Capula Investment Management: https://www.capulaglobal.com/careers/ | trusted patterns: `capula-investment-management-ltd.workable.com/jobs/`. Official careers page links to Workable job details.
 - PanAgora Asset Management: https://www.panagora.com/careers/ | trusted patterns: `/careers/`. Official careers page; reject `/insights/` research archive links.
 - Goldman Sachs: https://www.goldmansachs.com/careers/ | trusted patterns: `/careers/`. Official Goldman Sachs careers page; current generic crawler needs tighter role search.
-- JPMorgan Chase: https://careers.jpmorgan.com/us/en/home | trusted patterns: `careers.jpmorgan.com`, `/jobs/`. Official JPMorgan careers portal; reject `jpmorgan.com` insights pages.
+- JPMorgan Chase: https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs | trusted patterns: `jpmc.fa.oraclecloud.com`, `recruitingCEJobRequisitions`, `/job/`. Official JPMorgan Chase Oracle recruiting portal linked from JPMorganChase careers; reject `jpmorgan.com` insights pages.
 - Morgan Stanley: https://www.morganstanley.com/careers/career-opportunities-search | trusted patterns: `/careers/career-opportunities-search`. Official Morgan Stanley career opportunities search page.
 - Citi: https://jobs.citi.com/ | trusted patterns: `jobs.citi.com`. Official Citi jobs portal.
 - Bank of America: https://careers.bankofamerica.com/ | trusted patterns: `careers.bankofamerica.com`. Official Bank of America careers portal.
@@ -154,7 +154,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 - AQR Capital Management: https://www.aqr.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Man Group: https://www.man.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Winton: https://www.winton.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
-- G-Research: https://www.gresearch.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
+- G-Research: https://www.gresearch.com/vacancies/ | trusted patterns: `/vacancies/`, `gresearch.wd103.myworkdayjobs.com`. Official vacancies page with real job cards and Workday apply links; reject `/careers/`, `/teams/`, `/news/`, `/nextgen/`, and `/vector/` marketing/program pages.
 - Schonfeld: https://www.schonfeld.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Verition Fund Management: https://www.verition.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - ExodusPoint: https://www.exoduspoint.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.

@@ -9,7 +9,6 @@ TARGET_LOCATION_TERMS = {
     "jersey city",
     "chicago",
     "remote",
-    "united states",
 }
 
 NOISE_TERMS = {

@@ -66,6 +66,7 @@ def test_collect_sources_command_retires_stale_source_urls(tmp_path: Path) -> No
         for company_name, stale_url in [
             ("Flow Traders", "https://www.flowtraders.com/careers/jobs"),
             ("Two Sigma", "https://www.twosigma.com/careers/"),
+            ("JPMorgan Chase", "https://careers.jpmorgan.com/us/en/home"),
         ]:
             company = Company(
                 name=company_name,
@@ -102,6 +103,12 @@ def test_collect_sources_command_retires_stale_source_urls(tmp_path: Path) -> No
         )
         assert [row.source_url for row in two_sigma_active] == [
             "https://careers.twosigma.com/careers/OpenRoles"
+        ]
+        jpmorgan_active = (
+            session.query(CompanyJobSource).filter_by(company="JPMorgan Chase", active=True).all()
+        )
+        assert [row.source_url for row in jpmorgan_active] == [
+            "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs"
         ]
 
 
@@ -142,19 +149,37 @@ def test_canonical_categories_partition_all_target_companies() -> None:
 def test_known_non_job_patterns_cover_observed_false_positive_urls() -> None:
     from quant_job_tracker.cli import KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY, is_known_non_job_url
 
-    false_positive_urls = {
-        "AQR Capital Management": "https://www.aqr.com/Insights/Research",
-        "Akuna Capital": "https://akunacapital.com/what-we-do/quant/",
-        "Aspect Capital": "https://www.aspectcapital.com/insight/rcm-alternatives-podcast-with-christopher-reeve/",
-        "Balyasny Asset Management": "https://www.bamfunds.com/how-we-work/investment",
-        "Goldman Sachs": "https://www.goldmansachs.com/careers/our-firm/asset-management",
-        "JPMorgan Chase": "https://www.jpmorgan.com/insights/global-research",
-        "Millennium Management": "https://www.mlp.com/people/investment-professionals/",
-        "PanAgora Asset Management": "https://www.panagora.com/insights/?scrolled=1",
-        "WorldQuant": "https://www.worldquant.com/ideas/worldquant-announces-completion-of-inaugural-global-alphathon-competition/",
-    }
+    false_positive_urls = [
+        ("AQR Capital Management", "https://www.aqr.com/Insights/Research"),
+        ("Akuna Capital", "https://akunacapital.com/what-we-do/quant/"),
+        (
+            "Aspect Capital",
+            "https://www.aspectcapital.com/insight/rcm-alternatives-podcast-with-christopher-reeve/",
+        ),
+        ("Balyasny Asset Management", "https://www.bamfunds.com/how-we-work/investment"),
+        (
+            "G-Research",
+            "https://www.gresearch.com/teams/quantitative-research-machine-learning/",
+        ),
+        ("G-Research", "https://www.gresearch.com/nextgen/"),
+        ("G-Research", "https://www.gresearch.com/vector/"),
+        (
+            "Goldman Sachs",
+            "https://www.goldmansachs.com/careers/our-firm/asset-management",
+        ),
+        ("JPMorgan Chase", "https://www.jpmorgan.com/insights/global-research"),
+        (
+            "Millennium Management",
+            "https://www.mlp.com/people/investment-professionals/",
+        ),
+        ("PanAgora Asset Management", "https://www.panagora.com/insights/?scrolled=1"),
+        (
+            "WorldQuant",
+            "https://www.worldquant.com/ideas/worldquant-announces-completion-of-inaugural-global-alphathon-competition/",
+        ),
+    ]
 
-    for company, url in false_positive_urls.items():
+    for company, url in false_positive_urls:
         patterns = KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY[company]
         assert any(pattern in url for pattern in patterns), company
         assert is_known_non_job_url(company, url) is True
@@ -166,6 +191,25 @@ def test_known_non_job_patterns_cover_observed_false_positive_urls() -> None:
     assert is_known_non_job_url("WorldQuant", "https://www.worldquantfoundry.com/") is True
     assert is_known_non_job_url("WorldQuant", "https://www.wqu.edu/") is True
     assert is_known_non_job_url("WorldQuant", "https://worldquantventures.com/") is True
+
+
+def test_gresearch_and_jpmorgan_sources_point_to_live_job_surfaces() -> None:
+    seeds = {seed.name: seed for seed in SEEDS}
+    sources = {source.company: source for source in JOB_SOURCE_SEEDS}
+
+    assert seeds["G-Research"].career_url == "https://www.gresearch.com/vacancies/"
+    assert sources["G-Research"].source_url == "https://www.gresearch.com/vacancies/"
+    assert "/vacancies/" in sources["G-Research"].url_patterns
+
+    assert (
+        seeds["JPMorgan Chase"].career_url
+        == "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs"
+    )
+    assert (
+        sources["JPMorgan Chase"].source_url
+        == "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs"
+    )
+    assert "recruitingCEJobRequisitions" in sources["JPMorgan Chase"].url_patterns
 
 
 def test_eval_pending_command_is_idempotent_for_current_eval(tmp_path: Path) -> None:

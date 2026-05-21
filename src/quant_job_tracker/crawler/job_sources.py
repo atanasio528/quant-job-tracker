@@ -183,10 +183,10 @@ JOB_SOURCE_SEEDS: tuple[CompanyJobSourceSeed, ...] = (
     ),
     CompanyJobSourceSeed(
         "JPMorgan Chase",
-        "https://careers.jpmorgan.com/us/en/home",
-        "official_careers",
-        ("careers.jpmorgan.com", "/jobs/"),
-        "Official JPMorgan careers portal; reject jpmorgan.com insights pages.",
+        "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs",
+        "ats_job_board",
+        ("jpmc.fa.oraclecloud.com", "recruitingCEJobRequisitions", "/job/"),
+        "Official JPMorgan Chase Oracle recruiting portal linked from JPMorganChase careers.",
     ),
     CompanyJobSourceSeed(
         "Morgan Stanley",
@@ -394,11 +394,10 @@ JOB_SOURCE_SEEDS: tuple[CompanyJobSourceSeed, ...] = (
     ),
     CompanyJobSourceSeed(
         "G-Research",
-        "https://www.gresearch.com/careers/",
+        "https://www.gresearch.com/vacancies/",
         "official_careers",
-        ("/careers",),
-        "Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.",
-        "medium",
+        ("/vacancies/", "gresearch.wd103.myworkdayjobs.com"),
+        "Official vacancies page; job detail URLs use /vacancies/<role>/ and apply links point to Workday.",
     ),
     CompanyJobSourceSeed(
         "Schonfeld",

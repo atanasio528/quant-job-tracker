@@ -38,6 +38,16 @@ def test_reject_wrong_location() -> None:
     assert "location" in note
 
 
+def test_reject_generic_us_location_outside_target_markets() -> None:
+    keep, note = keep_job_card(
+        "JPMorgan Chase",
+        "Quant Analytics Associate",
+        "Wilmington, DE, United States",
+    )
+    assert keep is False
+    assert "location" in note
+
+
 def test_keep_unknown_location_for_evaluator_review() -> None:
     keep, note = keep_job_card("Some Fund", "Quant Researcher", "Unknown")
     assert keep is True

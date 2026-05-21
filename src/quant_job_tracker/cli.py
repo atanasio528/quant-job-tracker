@@ -20,6 +20,7 @@ from quant_job_tracker.crawler.seeds import SEEDS, CompanySeed
 from quant_job_tracker.crawler.service import (
     close_stale_jobs,
     prune_jobs_matching_url_patterns,
+    retire_missing_company_job_sources,
     upsert_company_job_source,
     upsert_company_seed,
     upsert_crawled_job,
@@ -48,6 +49,13 @@ KNOWN_NON_JOB_URL_PATTERNS_BY_COMPANY = {
     ),
     "D. E. Shaw": ("https://www.deshaw.com/what-we-do/",),
     "Goldman Sachs": ("https://www.goldmansachs.com/careers/our-firm/",),
+    "G-Research": (
+        "https://www.gresearch.com/careers/",
+        "https://www.gresearch.com/teams/",
+        "https://www.gresearch.com/news/",
+        "https://www.gresearch.com/nextgen/",
+        "https://www.gresearch.com/vector/",
+    ),
     "JPMorgan Chase": ("https://www.jpmorgan.com/insights/",),
     "Millennium Management": (
         "https://www.mlp.com/people/",
@@ -283,6 +291,7 @@ def collect_sources(db: Path = DEFAULT_DB_PATH) -> None:
     for source in JOB_SOURCE_SEEDS:
         upsert_company_job_source(db, source)
         count += 1
+    retire_missing_company_job_sources(db, JOB_SOURCE_SEEDS)
     typer.echo(f"Stored {count} company job sources")
 
 
