@@ -28,11 +28,14 @@ class HeuristicClassifier:
             "ai researcher",
             "machine learning researcher",
             "quant researcher",
+            "quant research",
             "quantitative researcher",
+            "quantitative / systematic research",
             "quant trader",
             "quantitative trader",
             "research scientist",
             "statistical arbitrage",
+            "systematic research",
             "trader",
             "trading analyst",
             "trading strategy",
@@ -75,11 +78,13 @@ class HeuristicClassifier:
             "unable to sponsor",
             "no visa sponsorship",
         ]
-        senior_terms = [
+        senior_title_terms = [
             "vp ",
             "vice president",
             "director",
             "head of",
+        ]
+        senior_jd_terms = [
             "lead a team",
             "8+ years",
             "7+ years",
@@ -101,7 +106,9 @@ class HeuristicClassifier:
         ]
         dirty_title = any(term in title_lower for term in (" summary:", " read post", " provides "))
         page_noise = any(term in title_lower for term in page_noise_terms)
-        front_intern = any(term in title_lower for term in ("intern", "graduate", "campus")) and any(
+        front_intern = any(
+            term in title_lower for term in ("intern", "graduate", "campus")
+        ) and any(
             term in title_lower for term in ("quant", "trading", "trader", "research", "alpha")
         )
         has_policy_title_alias = _policy_allows_front_alias(title_lower, policy_lower)
@@ -131,7 +138,12 @@ class HeuristicClassifier:
             h1b = "green"
         else:
             h1b = "yellow"
-        exp = "red" if any(term in text for term in senior_terms) else "green"
+        exp = (
+            "red"
+            if any(term in title_lower for term in senior_title_terms)
+            or any(term in jd_lower for term in senior_jd_terms)
+            else "green"
+        )
         if front_intern:
             exp = "green"
 

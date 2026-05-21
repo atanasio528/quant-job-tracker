@@ -608,10 +608,21 @@ JOB_SOURCE_SEEDS: tuple[CompanyJobSourceSeed, ...] = (
     ),
     CompanyJobSourceSeed(
         "BlackRock",
-        "https://careers.blackrock.com/search-jobs?k=quant",
-        "official_careers",
+        "https://careers.blackrock.com/search-jobs",
+        "official_search",
         ("careers.blackrock.com/search-jobs", "careers.blackrock.com/job/"),
-        "Official BlackRock jobs search scoped to quant; reject career blog links.",
+        "Official BlackRock jobs search; crawler searches quant, quantitative, systematic, and research terms.",
+        "high",
+    ),
+    CompanyJobSourceSeed(
+        "BlackRock",
+        "https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1",
+        "official_category",
+        (
+            "careers.blackrock.com/category/students-and-graduates-jobs",
+            "careers.blackrock.com/job/",
+        ),
+        "Official BlackRock students and graduates job category for internship and analyst program listings.",
         "medium",
     ),
     CompanyJobSourceSeed(

@@ -91,9 +91,13 @@ def test_real_source_urls_use_verified_job_listing_surfaces() -> None:
     assert source_by_company["XTX Markets"].source_url == (
         "https://job-boards.greenhouse.io/xtxmarketstechnologies"
     )
+    blackrock_sources = [
+        source.source_url for source in JOB_SOURCE_SEEDS if source.company == "BlackRock"
+    ]
+    assert "https://careers.blackrock.com/search-jobs" in blackrock_sources
     assert (
-        source_by_company["BlackRock"].source_url
-        == "https://careers.blackrock.com/search-jobs?k=quant"
+        "https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1"
+        in blackrock_sources
     )
     assert source_by_company["Flow Traders"].source_url == (
         "https://www.flowtraders.com/careers/job-search/"

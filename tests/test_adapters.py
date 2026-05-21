@@ -355,6 +355,144 @@ def test_adapter_parses_blackrock_job_search_and_rejects_career_blogs() -> None:
     ]
 
 
+def test_adapter_parses_blackrock_students_category_jobs_not_blogs() -> None:
+    html = """
+    <html><body>
+      <ul class="section3__search-results-ul">
+        <li class="section3__search-results-li">
+          <a class="section3__search-results-a" href="/job/new-york/2027-summer-internship-program-amers/45831/90628276544">
+            <h2 class="section3__job-title">2027 Summer Internship Program - AMERS</h2>
+            <span class="job-location section3__job-information">
+              <span>Location:</span>
+              <span class="section3__job-info">New York, NY</span>
+            </span>
+            <span class="job-location section3__job-information">
+              <span>Additional Locations:</span>
+              <span class="section3__job-info">Atlanta, Boston, Chicago, Miami, San Francisco</span>
+            </span>
+            <span class="job-category section3__job-information">
+              <span>Team:</span>
+              <span class="section3__job-info">STUDENTS AND GRADUATES</span>
+            </span>
+          </a>
+        </li>
+      </ul>
+      <a href="/from-hackathon-to-higher-ed-the-blackrock-for-universities-story">
+        From Hackathon to Higher Ed: The BlackRock for Universities Story
+      </a>
+    </body></html>
+    """
+    adapter = GenericAdapter()
+
+    cards = adapter.parse_cards(
+        "https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1",
+        html,
+    )
+
+    assert cards == [
+        JobCard(
+            title="2027 Summer Internship Program - AMERS",
+            loc="New York, NY; Atlanta, Boston, Chicago, Miami, San Francisco",
+            url="https://careers.blackrock.com/job/new-york/2027-summer-internship-program-amers/45831/90628276544",
+        )
+    ]
+
+
+@respx.mock
+def test_blackrock_adapter_fetches_broader_searches_and_students_category() -> None:
+    def blackrock_page(title: str, loc: str, path: str) -> str:
+        return f"""
+        <html><body>
+          <section id="search-results" data-current-page="1" data-total-pages="1">
+            <ul class="section3__search-results-ul">
+              <li class="section3__search-results-li">
+                <a class="section3__search-results-a" href="{path}">
+                  <h2 class="section3__job-title">{title}</h2>
+                  <span class="job-location section3__job-information">
+                    <span>Location:</span>
+                    <span class="section3__job-info">{loc}</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+        </body></html>
+        """
+
+    respx.get("https://careers.blackrock.com/search-jobs", params={"k": "quant"}).mock(
+        return_value=httpx.Response(
+            200,
+            text=blackrock_page(
+                "Security Modeling Quant Developer - Associate",
+                "New York, NY",
+                "/job/new-york/security-modeling-quant-developer-associate/45831/92427957328",
+            ),
+        )
+    )
+    respx.get("https://careers.blackrock.com/search-jobs", params={"k": "quantitative"}).mock(
+        return_value=httpx.Response(
+            200,
+            text=blackrock_page(
+                "Quantitative / Systematic Research, Associate",
+                "San Francisco, CA",
+                "/job/san-francisco/quantitative-systematic-research-associate/45831/95306345920",
+            ),
+        )
+    )
+    respx.get("https://careers.blackrock.com/search-jobs", params={"k": "systematic"}).mock(
+        return_value=httpx.Response(
+            200,
+            text=blackrock_page(
+                "Associate, Quant Research",
+                "San Francisco, CA",
+                "/job/san-francisco/associate-quant-research/45831/95265574448",
+            ),
+        )
+    )
+    respx.get("https://careers.blackrock.com/search-jobs", params={"k": "research"}).mock(
+        return_value=httpx.Response(
+            200,
+            text=blackrock_page(
+                "Vice President, Investment Research",
+                "Chicago, IL",
+                "/job/chicago/vice-president-investment-research/45831/92360536704",
+            ),
+        )
+    )
+    respx.get(
+        "https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1"
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            text=blackrock_page(
+                "2027 Summer Internship Program - AMERS",
+                "New York, NY",
+                "/job/new-york/2027-summer-internship-program-amers/45831/90628276544",
+            ),
+        )
+    )
+    adapter = GenericAdapter()
+
+    cards = adapter.fetch_cards("https://careers.blackrock.com/search-jobs")
+
+    assert (
+        JobCard(
+            title="Quantitative / Systematic Research, Associate",
+            loc="San Francisco, CA",
+            url="https://careers.blackrock.com/job/san-francisco/quantitative-systematic-research-associate/45831/95306345920",
+        )
+        in cards
+    )
+    assert (
+        JobCard(
+            title="2027 Summer Internship Program - AMERS",
+            loc="New York, NY",
+            url="https://careers.blackrock.com/job/new-york/2027-summer-internship-program-amers/45831/90628276544",
+        )
+        in cards
+    )
+
+
 def test_adapter_parses_imc_job_search_and_rejects_marketing_links() -> None:
     html = """
     <html><body>

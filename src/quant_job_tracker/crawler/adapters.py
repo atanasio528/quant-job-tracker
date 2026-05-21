@@ -23,6 +23,16 @@ JPMORGAN_SEARCH_KEYWORDS = (
     "trading",
     "research",
 )
+BLACKROCK_BASE_URL = "https://careers.blackrock.com"
+BLACKROCK_SEARCH_KEYWORDS = (
+    "quant",
+    "quantitative",
+    "systematic",
+    "research",
+)
+BLACKROCK_CATEGORY_URLS = (
+    "https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1",
+)
 
 
 @dataclass(frozen=True)
@@ -69,6 +79,10 @@ class GenericAdapter:
             "/hcmUI/CandidateExperience/en/sites/CX_1001/jobs"
         ):
             return self.fetch_jpmorgan_cards()
+        if parsed_url.netloc == "careers.blackrock.com" and (
+            parsed_url.path.startswith("/search-jobs") or parsed_url.path.startswith("/category/")
+        ):
+            return self.fetch_blackrock_cards()
 
         html = self.fetch_html(url)
         return self.parse_cards(url, html)
@@ -84,8 +98,8 @@ class GenericAdapter:
             return parse_citadel_cards(base_url, soup)
         if parsed_base.netloc == "job-boards.greenhouse.io":
             return parse_greenhouse_job_board_cards(base_url, soup)
-        if parsed_base.netloc == "careers.blackrock.com" and parsed_base.path.startswith(
-            "/search-jobs"
+        if parsed_base.netloc == "careers.blackrock.com" and (
+            parsed_base.path.startswith("/search-jobs") or parsed_base.path.startswith("/category/")
         ):
             return parse_blackrock_job_search_cards(base_url, soup)
         if parsed_base.netloc == "www.imc.com" and parsed_base.path.startswith(
@@ -378,6 +392,17 @@ class GenericAdapter:
                         break
         return dedupe_cards(cards)
 
+    def fetch_blackrock_cards(self, max_pages_per_query: int = 20) -> list[JobCard]:
+        cards: list[JobCard] = []
+        with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+            for keyword in BLACKROCK_SEARCH_KEYWORDS:
+                cards.extend(
+                    fetch_blackrock_search_cards(client, keyword, max_pages=max_pages_per_query)
+                )
+            for url in BLACKROCK_CATEGORY_URLS:
+                cards.extend(fetch_blackrock_url_cards(client, url, max_pages=3))
+        return dedupe_cards(cards)
+
     def fetch_html(self, url: str) -> str:
         with httpx.Client(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
             response = request_with_retries(client, "GET", url)
@@ -582,6 +607,21 @@ def parse_greenhouse_anchor_cards(base_url: str, soup: BeautifulSoup) -> list[Jo
 
 def parse_blackrock_job_search_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:
     cards: list[JobCard] = []
+    search_links = soup.select(
+        "li.section3__search-results-li a.section3__search-results-a[href*='/job/']"
+    )
+    for link in search_links:
+        title_el = link.select_one(".section3__job-title")
+        title = clean_card_title(
+            title_el.get_text(" ", strip=True) if title_el else link.get_text(" ", strip=True)
+        )
+        locations = blackrock_result_locations(link)
+        loc = "; ".join(locations) if locations else "Unknown"
+        if title:
+            cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, link["href"])))
+    if cards:
+        return dedupe_cards(cards)
+
     for link in soup.find_all("a", href=True):
         href = link["href"].strip()
         path = urlparse(normalize_url(base_url, href)).path
@@ -593,6 +633,79 @@ def parse_blackrock_job_search_cards(base_url: str, soup: BeautifulSoup) -> list
         if title:
             cards.append(JobCard(title=title, loc=loc, url=normalize_url(base_url, href)))
     return dedupe_cards(cards)
+
+
+def blackrock_result_locations(link) -> list[str]:
+    locations: list[str] = []
+    for info in link.select(".section3__job-information"):
+        spans = info.find_all("span", recursive=False)
+        if len(spans) < 2:
+            continue
+        label = spans[0].get_text(" ", strip=True).lower()
+        if label not in {"location:", "additional locations:"}:
+            continue
+        value_el = info.select_one(".section3__job-info")
+        value = " ".join(
+            (
+                value_el.get_text(" ", strip=True)
+                if value_el
+                else spans[-1].get_text(" ", strip=True)
+            ).split()
+        )
+        if value:
+            locations.append(value)
+    return locations
+
+
+def fetch_blackrock_search_cards(
+    client: httpx.Client, keyword: str, max_pages: int
+) -> list[JobCard]:
+    cards: list[JobCard] = []
+    page = 1
+    while page <= max_pages:
+        params = {"k": keyword}
+        if page > 1:
+            params["p"] = str(page)
+        response = request_with_retries(
+            client,
+            "GET",
+            f"{BLACKROCK_BASE_URL}/search-jobs",
+            params=params,
+        )
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        cards.extend(parse_blackrock_job_search_cards(f"{BLACKROCK_BASE_URL}/search-jobs", soup))
+        total_pages = blackrock_total_pages(soup)
+        if page >= total_pages:
+            break
+        page += 1
+    return cards
+
+
+def fetch_blackrock_url_cards(client: httpx.Client, url: str, max_pages: int) -> list[JobCard]:
+    cards: list[JobCard] = []
+    page = 1
+    while page <= max_pages:
+        params = {"p": str(page)} if page > 1 else None
+        response = request_with_retries(client, "GET", url, params=params)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        cards.extend(parse_blackrock_job_search_cards(url, soup))
+        total_pages = blackrock_total_pages(soup)
+        if page >= total_pages:
+            break
+        page += 1
+    return cards
+
+
+def blackrock_total_pages(soup: BeautifulSoup) -> int:
+    result_section = soup.select_one("#search-results[data-total-pages]")
+    if result_section is None:
+        return 1
+    try:
+        return max(int(result_section.get("data-total-pages", "1")), 1)
+    except ValueError:
+        return 1
 
 
 def parse_imc_job_search_cards(base_url: str, soup: BeautifulSoup) -> list[JobCard]:

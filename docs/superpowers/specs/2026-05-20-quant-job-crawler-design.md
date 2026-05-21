@@ -10,7 +10,7 @@ The crawler is for a candidate with 1 year of work experience who holds H-1B sta
 
 ## Scope
 
-V1 crawls live job postings only from official company career pages. It targets US jobs open to New York, Boston, Florida, New Jersey, or Chicago.
+V1 crawls live job postings only from official company career pages. It targets US jobs open to New York, Boston, Florida, New Jersey, Chicago, or San Francisco.
 
 The firm universe focuses on quant-career-relevant firms:
 

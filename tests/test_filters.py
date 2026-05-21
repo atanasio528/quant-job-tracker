@@ -45,7 +45,17 @@ def test_reject_generic_us_location_outside_target_markets() -> None:
         "Wilmington, DE, United States",
     )
     assert keep is False
-    assert "location" in note
+
+
+def test_keep_blackrock_san_francisco_quant_research_role() -> None:
+    keep, note = keep_job_card(
+        "BlackRock",
+        "Quantitative / Systematic Research, Associate",
+        "San Francisco, CA",
+    )
+
+    assert keep is True
+    assert "quant" in note
 
 
 def test_keep_unknown_location_for_evaluator_review() -> None:

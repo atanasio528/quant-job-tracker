@@ -2,7 +2,7 @@
 
 Local crawler, evaluator, and dashboard for front quant job applications.
 
-V1 focuses on official career pages, US locations relevant to New York, Boston, Florida, New Jersey, and Chicago, and front quant roles suitable for an H-1B holder with 1 year of experience.
+V1 focuses on official career pages, US locations relevant to New York, Boston, Florida, New Jersey, Chicago, and San Francisco, and front quant roles suitable for an H-1B holder with 1 year of experience.
 
 ## Development
 

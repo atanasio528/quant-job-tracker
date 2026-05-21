@@ -148,6 +148,22 @@ def test_classifier_marks_front_intern_roles_green() -> None:
     assert result.exp == "green"
 
 
+def test_classifier_marks_systematic_research_associate_front_green_with_relaxed_exp() -> None:
+    result = HeuristicClassifier().classify(
+        title="Quantitative / Systematic Research, Associate",
+        jd=(
+            "Develop systematic signals and strategies for hedge fund products. "
+            "Create innovative systematic investment signals and alpha sources. "
+            "Candidates should have 2+ years of relevant experience. "
+            "Career path: Analyst, Associate, Vice President, Director."
+        ),
+        policy="",
+    )
+
+    assert result.front == "green"
+    assert result.exp == "green"
+
+
 def test_classifier_does_not_let_site_boilerplate_risk_override_front_quant_title() -> None:
     result = HeuristicClassifier().classify(
         title="Quantitative Researcher (Mid-Freq)",

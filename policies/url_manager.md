@@ -167,9 +167,11 @@ The URL manager owns company-by-company job-source discovery before crawler chan
 ### BlackRock
 
 - Category: Asset Management
-- Source URL: https://careers.blackrock.com/search-jobs?k=quant
-- Trusted URL patterns: `careers.blackrock.com/search-jobs`, `careers.blackrock.com/job/`
+- Source URLs:
+  - https://careers.blackrock.com/search-jobs
+  - https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1
+- Trusted URL patterns: `careers.blackrock.com/search-jobs`, `careers.blackrock.com/category/students-and-graduates-jobs`, `careers.blackrock.com/job/`
 - Reject URL patterns: `/blog-`, `/from-hackathon`, `/career-development`
-- Confidence: medium
+- Confidence: high
 - Verification status: verified_live
-- Crawl note: The homepage promotes career blog posts that look keyword-relevant; use the official quant search URL and only accept `/job/` detail links.
+- Crawl note: The homepage promotes career blog posts that look keyword-relevant. Use the official search surface with `quant`, `quantitative`, `systematic`, and `research` keywords, also crawl the students-and-graduates category, and only accept `/job/` detail links.

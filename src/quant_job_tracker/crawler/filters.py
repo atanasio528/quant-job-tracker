@@ -8,6 +8,7 @@ TARGET_LOCATION_TERMS = {
     "new jersey",
     "jersey city",
     "chicago",
+    "san francisco",
     "remote",
 }
 

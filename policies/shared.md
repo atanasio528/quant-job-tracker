@@ -8,7 +8,7 @@
 
 ## Target Locations
 
-Keep roles open to New York, Boston, Florida, New Jersey, or Chicago. Remote roles are acceptable only when they are open to one of those locations.
+Keep roles open to New York, Boston, Florida, New Jersey, Chicago, or San Francisco. Remote roles are acceptable only when they are open to one of those locations.
 
 ## Fields
 
@@ -45,3 +45,4 @@ Risk, model validation, execution services, transaction cost analysis, portfolio
 ## Known Aliases
 
 - Hudson River Trading: `Algorithm Developer` can be front quant when the JD says `Quant Researcher`, alpha, predictive modeling, or trading strategy research.
+- BlackRock: `Quantitative / Systematic Research` and `Quant Research` titles can be front quant when the JD says systematic signals, alpha sources, investment signals, or trading strategy research.

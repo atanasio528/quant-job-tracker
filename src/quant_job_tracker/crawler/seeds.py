@@ -260,7 +260,7 @@ SEEDS: list[CompanySeed] = [
     CompanySeed(
         "BlackRock",
         "quant_asset_manager",
-        "https://careers.blackrock.com/search-jobs?k=quant",
+        "https://careers.blackrock.com/search-jobs",
         "generic",
     ),
     CompanySeed(

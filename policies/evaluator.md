@@ -98,7 +98,7 @@ Every target company must belong to exactly one of these evaluator categories. U
 
 ### Asset Management (5)
 - Arrowstreet Capital: https://www.arrowstreetcapital.com/careers/
-- BlackRock: https://careers.blackrock.com/search-jobs?k=quant
+- BlackRock: https://careers.blackrock.com/search-jobs and https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1
 - Acadian Asset Management: https://www.acadian-asset.com/careers
 - PanAgora Asset Management: https://www.panagora.com/careers/
 - Dimensional Fund Advisors: https://www.dimensional.com/us-en/careers
@@ -181,6 +181,6 @@ Every target company must belong to exactly one of these evaluator categories. U
 - LMR Partners: https://www.lmrpartners.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Quadrature: https://quadrature.ai/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Teza Technologies: https://www.teza.com/careers/ | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
-- BlackRock: https://careers.blackrock.com/search-jobs?k=quant | trusted patterns: `careers.blackrock.com/search-jobs`, `careers.blackrock.com/job/`. Official BlackRock jobs search scoped to quant; reject career blog links.
+- BlackRock: https://careers.blackrock.com/search-jobs and https://careers.blackrock.com/category/students-and-graduates-jobs/45831/9022304/1 | trusted patterns: `careers.blackrock.com/search-jobs`, `careers.blackrock.com/category/students-and-graduates-jobs`, `careers.blackrock.com/job/`. Official BlackRock search page plus students-and-graduates category; crawler searches `quant`, `quantitative`, `systematic`, and `research`; reject career blog links.
 - Acadian Asset Management: https://www.acadian-asset.com/careers | trusted patterns: `/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.
 - Dimensional Fund Advisors: https://www.dimensional.com/us-en/careers | trusted patterns: `/us-en/careers`. Official careers source from target seed list; URL structure needs evaluator review before hard crawler validation.

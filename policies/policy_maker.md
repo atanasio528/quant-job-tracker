@@ -20,6 +20,7 @@ Recently resolved source issues:
 
 - G-Research: broad `/careers/` introduction page replaced with official `/vacancies/` job-card page; reject `/teams/`, `/news/`, `/nextgen/`, and `/vector/` rows as page noise.
 - JPMorgan Chase: generic career landing page replaced with the official Oracle Candidate Experience job portal and API-backed adapter.
+- BlackRock: single `k=quant` search replaced with official search plus students-and-graduates category; crawler now searches `quant`, `quantitative`, `systematic`, and `research`, and keeps San Francisco roles for evaluator review.
 
 Latest full-run URL review queue:
 
