@@ -1,0 +1,18 @@
+<details class="column-filter">
+  <summary>
+    <span>{{ control.label }}</span>
+    <span class="filter-summary">{{ control.summary }}</span>
+  </summary>
+  <div class="filter-panel">
+    {% for option in control.options %}
+      <label>
+        <input type="checkbox" name="{{ control.name }}" value="{{ option }}" {% if option in control.selected %}checked{% endif %}>
+        {{ option }}
+      </label>
+    {% endfor %}
+    <div class="filter-actions">
+      <button type="submit">Apply</button>
+      <a href="{{ control.clear_href }}">Clear</a>
+    </div>
+  </div>
+</details>

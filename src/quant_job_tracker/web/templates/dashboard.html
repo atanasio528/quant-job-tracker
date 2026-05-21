@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard Summary</h1>
+
+<section class="summary-grid" aria-label="Dashboard summary cards">
+  <article class="metric-card">
+    <span>Open Positions</span>
+    <strong>{{ open_positions }}</strong>
+    <small>new + live roles</small>
+  </article>
+  <article class="metric-card">
+    <span>Applications</span>
+    <strong>{{ applications }}</strong>
+    <small>tracked application rows</small>
+  </article>
+  <article class="metric-card">
+    <span>Latest Update</span>
+    {% if latest_run %}
+      <strong>{{ latest_run.kind }} · {{ latest_run.status }}</strong>
+      <small>{{ latest_run.created_at }}</small>
+    {% else %}
+      <strong>none</strong>
+      <small>no pipeline run stored</small>
+    {% endif %}
+  </article>
+</section>
+
+<section class="dashboard-grid">
+  <article class="chart-card">
+    <h2>Open Positions by Industry</h2>
+    {% for label, count in industry_counts.items() %}
+      <div class="bar-row">
+        <span>{{ label }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ (count / max_industry_count * 100)|round(0, 'ceil') }}%"></div></div>
+        <strong>{{ count }}</strong>
+      </div>
+    {% endfor %}
+  </article>
+
+  <article class="chart-card">
+    <h2>Applications</h2>
+    {% for label, count in app_counts.items() %}
+      <div class="bar-row">
+        <span>{{ label }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ (count / max_app_count * 100)|round(0, 'ceil') }}%"></div></div>
+        <strong>{{ count }}</strong>
+      </div>
+    {% endfor %}
+  </article>
+
+  <article class="chart-card">
+    <h2>Opened Positions</h2>
+    {% for label, count in status_counts.items() %}
+      <div class="bar-row">
+        <span>{{ label }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ (count / open_positions * 100)|round(0, 'ceil') if open_positions else 0 }}%"></div></div>
+        <strong>{{ count }}</strong>
+      </div>
+    {% endfor %}
+  </article>
+
+  <article class="chart-card">
+    <h2>Eligibility Mix</h2>
+    {% for label, count in front_counts.items() %}
+      <div class="bar-row">
+        <span><span class="pill {{ label }}">{{ label }}</span></span>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ (count / max_front_count * 100)|round(0, 'ceil') }}%"></div></div>
+        <strong>{{ count }}</strong>
+      </div>
+    {% endfor %}
+  </article>
+</section>
+{% endblock %}

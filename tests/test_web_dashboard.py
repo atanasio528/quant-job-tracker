@@ -189,6 +189,285 @@ def test_web_dashboard_filters_eval_fields_and_status(tmp_path: Path) -> None:
     assert "Closed Quant Researcher" not in filtered_response.text
 
 
+def test_jobs_dashboard_supports_multi_select_column_filters(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant_hedge_fund",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        green_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Green Quant Researcher",
+            loc="New York",
+            url="https://example.com/job/green",
+            source="official",
+            jd="Alpha research role",
+            jd_hash="green",
+            status="live",
+        )
+        yellow_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Yellow Alpha Researcher",
+            loc="Boston",
+            url="https://example.com/job/yellow",
+            source="official",
+            jd="Alpha research role",
+            jd_hash="yellow",
+            status="live",
+        )
+        red_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Red Risk Quant",
+            loc="Chicago",
+            url="https://example.com/job/red",
+            source="official",
+            jd="Risk role",
+            jd_hash="red",
+            status="live",
+        )
+        session.add_all([green_job, yellow_job, red_job])
+        session.flush()
+        session.add_all(
+            [
+                Eval(
+                    job_id=green_job.id,
+                    jd_hash=green_job.jd_hash,
+                    front="green",
+                    h1b="green",
+                    exp="green",
+                    score=90,
+                    reason="Front-office fit",
+                    flags="",
+                    model="codex-v1",
+                    policy_ver="v1",
+                ),
+                Eval(
+                    job_id=yellow_job.id,
+                    jd_hash=yellow_job.jd_hash,
+                    front="yellow",
+                    h1b="yellow",
+                    exp="green",
+                    score=70,
+                    reason="Needs review",
+                    flags="",
+                    model="codex-v1",
+                    policy_ver="v1",
+                ),
+                Eval(
+                    job_id=red_job.id,
+                    jd_hash=red_job.jd_hash,
+                    front="red",
+                    h1b="yellow",
+                    exp="green",
+                    score=20,
+                    reason="Risk role",
+                    flags="risk",
+                    model="codex-v1",
+                    policy_ver="v1",
+                ),
+            ]
+        )
+        session.commit()
+
+    client = TestClient(create_app(db_path))
+
+    response = client.get("/?front=green&front=yellow")
+
+    assert response.status_code == 200
+    assert "Green Quant Researcher" in response.text
+    assert "Yellow Alpha Researcher" in response.text
+    assert "Red Risk Quant" not in response.text
+    assert '<details class="column-filter">' in response.text
+    assert 'name="front" value="green" checked' in response.text
+    assert 'name="front" value="yellow" checked' in response.text
+
+
+def test_jobs_dashboard_filters_by_industry_subtabs(tmp_path: Path) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        companies = [
+            Company(
+                name="Bank",
+                group="sell_side_quant",
+                career_url="https://bank.example.com",
+                active=True,
+            ),
+            Company(
+                name="Prop",
+                group="prop",
+                career_url="https://prop.example.com",
+                active=True,
+            ),
+            Company(
+                name="Hedge Fund",
+                group="quant_hedge_fund",
+                career_url="https://hedge.example.com",
+                active=True,
+            ),
+            Company(
+                name="Asset Manager",
+                group="quant_asset_manager",
+                career_url="https://asset.example.com",
+                active=True,
+            ),
+        ]
+        session.add_all(companies)
+        session.flush()
+        for company in companies:
+            session.add(
+                Job(
+                    company_id=company.id,
+                    company=company.name,
+                    title=f"{company.name} Quant Researcher",
+                    loc="New York",
+                    url=f"https://example.com/{company.id}",
+                    source="official",
+                    jd="Alpha research role",
+                    jd_hash=f"hash-{company.id}",
+                    status="live",
+                )
+            )
+        session.commit()
+
+    client = TestClient(create_app(db_path))
+
+    all_response = client.get("/")
+    prop_response = client.get("/?industry=Prop+Trading")
+
+    assert all_response.status_code == 200
+    assert 'href="/?industry=Investment+Banks"' in all_response.text
+    assert 'href="/?industry=Hedge+Funds"' in all_response.text
+    assert 'href="/?industry=Prop+Trading"' in all_response.text
+    assert 'href="/?industry=Asset+Management"' in all_response.text
+    assert prop_response.status_code == 200
+    assert "Prop Quant Researcher" in prop_response.text
+    assert "Bank Quant Researcher" not in prop_response.text
+    assert "Hedge Fund Quant Researcher" not in prop_response.text
+    assert "Asset Manager Quant Researcher" not in prop_response.text
+
+
+def test_summary_dashboard_visualizes_updates_applications_and_open_positions(
+    tmp_path: Path,
+) -> None:
+    from quant_job_tracker.web.app import create_app
+
+    db_path = tmp_path / "qjt.sqlite3"
+    init_db(db_path)
+    with create_session(db_path) as session:
+        company = Company(
+            name="Test Fund",
+            group="quant_hedge_fund",
+            career_url="https://example.com",
+            active=True,
+        )
+        session.add(company)
+        session.flush()
+        live_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Live Quant Researcher",
+            loc="New York",
+            url="https://example.com/live",
+            source="official",
+            jd="Alpha research role",
+            jd_hash="live",
+            status="live",
+        )
+        new_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="New Quant Trader",
+            loc="Chicago",
+            url="https://example.com/new",
+            source="official",
+            jd="Trading role",
+            jd_hash="new",
+            status="new",
+        )
+        closed_job = Job(
+            company_id=company.id,
+            company=company.name,
+            title="Closed Quant Researcher",
+            loc="Boston",
+            url="https://example.com/closed",
+            source="official",
+            jd="Alpha research role",
+            jd_hash="closed",
+            status="closed",
+        )
+        session.add_all([live_job, new_job, closed_job])
+        session.flush()
+        session.add_all(
+            [
+                App(job_id=live_job.id, app_status="ready"),
+                App(job_id=new_job.id, app_status="applied"),
+                Eval(
+                    job_id=live_job.id,
+                    jd_hash=live_job.jd_hash,
+                    front="green",
+                    h1b="green",
+                    exp="green",
+                    score=90,
+                    reason="Good fit",
+                    flags="",
+                    model="codex-v1",
+                    policy_ver="v1",
+                ),
+                Eval(
+                    job_id=new_job.id,
+                    jd_hash=new_job.jd_hash,
+                    front="yellow",
+                    h1b="yellow",
+                    exp="green",
+                    score=75,
+                    reason="Review",
+                    flags="",
+                    model="codex-v1",
+                    policy_ver="v1",
+                ),
+                Run(
+                    kind="crawl",
+                    status="success",
+                    jobs_found=12,
+                    jobs_stored=2,
+                    policy_ver="v1",
+                    model="crawler",
+                ),
+            ]
+        )
+        session.commit()
+
+    client = TestClient(create_app(db_path))
+
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Dashboard Summary" in response.text
+    assert "Open Positions" in response.text
+    assert "2</strong>" in response.text
+    assert "Applications" in response.text
+    assert "2</strong>" in response.text
+    assert "Latest Update" in response.text
+    assert "crawl · success" in response.text
+    assert "Eligibility Mix" in response.text
+    assert "green" in response.text
+    assert "yellow" in response.text
+
+
 def test_web_dashboard_paginates_collected_jobs(tmp_path: Path) -> None:
     from quant_job_tracker.web.app import create_app
 

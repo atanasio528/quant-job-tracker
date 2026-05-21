@@ -1,42 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Jobs</h1>
-<form class="toolbar" method="get" action="/">
-  <label>
-    Front
-    <select name="front">
-      {% for option in label_options %}
-        <option value="{{ option }}" {% if filters.front == option %}selected{% endif %}>{{ option }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    H-1B
-    <select name="h1b">
-      {% for option in label_options %}
-        <option value="{{ option }}" {% if filters.h1b == option %}selected{% endif %}>{{ option }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Exp
-    <select name="exp">
-      {% for option in label_options %}
-        <option value="{{ option }}" {% if filters.exp == option %}selected{% endif %}>{{ option }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Status
-    <select name="status">
-      {% for option in status_options %}
-        <option value="{{ option }}" {% if filters.status == option %}selected{% endif %}>{{ option }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <button type="submit">Apply</button>
-  <a href="/">Reset</a>
-</form>
+<nav class="subtabs" aria-label="Industry tabs">
+  {% for tab in industry_tabs %}
+    <a class="{% if tab.active %}active{% endif %}" href="{{ tab.href }}">{{ tab.label }}</a>
+  {% endfor %}
+</nav>
 
 <p class="muted">Showing {{ rows|length }} of {{ total_rows }} collected positions · page {{ page }} / {{ total_pages }}</p>
 <div class="pager">
@@ -52,10 +21,25 @@
   {% endif %}
 </div>
 
+<form method="get" action="/">
+{% if industry != "All" %}
+  <input type="hidden" name="industry" value="{{ industry }}">
+{% endif %}
 <table>
   <thead>
     <tr>
-      <th>Company</th><th>Title</th><th>Location</th><th>Status</th><th>App</th><th>Front</th><th>H-1B</th><th>Exp</th><th>Score</th><th>Flags</th>
+      <th>Company</th><th>Title</th><th>Location</th>
+      {% set status_filter = filter_control_by_name.status %}
+      <th>{% with control = status_filter %}{% include "_column_filter.html" %}{% endwith %}</th>
+      {% set app_status_filter = filter_control_by_name.app_status %}
+      <th>{% with control = app_status_filter %}{% include "_column_filter.html" %}{% endwith %}</th>
+      {% set front_filter = filter_control_by_name.front %}
+      <th>{% with control = front_filter %}{% include "_column_filter.html" %}{% endwith %}</th>
+      {% set h1b_filter = filter_control_by_name.h1b %}
+      <th>{% with control = h1b_filter %}{% include "_column_filter.html" %}{% endwith %}</th>
+      {% set exp_filter = filter_control_by_name.exp %}
+      <th>{% with control = exp_filter %}{% include "_column_filter.html" %}{% endwith %}</th>
+      <th>Score</th><th>Flags</th>
     </tr>
   </thead>
   <tbody>
@@ -71,8 +55,7 @@
       </td>
       <td>{{ row.job.loc }}</td>
       <td>{{ row.job.status }}</td>
-      {% set app_status = row.application.app_status if row.application else "not_started" %}
-      <td><a href="/jobs/{{ row.job.id }}">{{ app_status }}</a></td>
+      <td><a href="/jobs/{{ row.job.id }}">{{ row.app_status }}</a></td>
       {% if row.eval %}
         <td><span class="pill {{ row.eval.front }}">{{ row.eval.front }}</span></td>
         <td><span class="pill {{ row.eval.h1b }}">{{ row.eval.h1b }}</span></td>
@@ -86,6 +69,7 @@
   {% endfor %}
   </tbody>
 </table>
+</form>
 
 <div class="pager">
   {% if prev_query %}

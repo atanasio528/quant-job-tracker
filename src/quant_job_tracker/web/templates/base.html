@@ -19,6 +19,17 @@
       select, button, input, textarea { font: inherit; }
       select, button { min-height: 34px; border: 1px solid #cfd6dd; border-radius: 6px; background: white; padding: 5px 9px; }
       button { background: #12212f; color: white; cursor: pointer; }
+      .subtabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+      .subtabs a { border: 1px solid #cfd6dd; border-radius: 6px; background: white; color: #172026; padding: 7px 10px; font-size: 14px; }
+      .subtabs a.active { background: #12212f; border-color: #12212f; color: white; }
+      .column-filter { position: relative; }
+      .column-filter summary { align-items: center; cursor: pointer; display: flex; gap: 6px; list-style: none; }
+      .column-filter summary::-webkit-details-marker { display: none; }
+      .filter-summary { color: #66717c; font-size: 12px; font-weight: 500; }
+      .filter-panel { background: white; border: 1px solid #cfd6dd; box-shadow: 0 12px 28px rgba(18, 33, 47, 0.14); display: grid; gap: 8px; min-width: 180px; padding: 10px; position: absolute; top: 28px; z-index: 5; }
+      .filter-panel label { align-items: center; color: #172026; display: flex; font-size: 13px; font-weight: 500; gap: 7px; }
+      .filter-actions { border-top: 1px solid #e5e8eb; display: flex; gap: 10px; margin-top: 4px; padding-top: 9px; }
+      .filter-actions button { min-height: 30px; padding: 3px 8px; }
       .pager { display: flex; gap: 14px; align-items: center; margin: 14px 0; }
       .pill { border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 700; }
       .green { background: #d9fbe5; color: #075e2b; }
@@ -31,12 +42,24 @@
       .jd-section + .jd-section { border-top: 1px solid #edf1f4; margin-top: 20px; padding-top: 18px; }
       .jd-heading { margin: 0 0 10px; font-size: 17px; color: #12212f; }
       .jd-card p { margin: 0 0 12px; }
+      .summary-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 16px 0 18px; }
+      .metric-card, .chart-card { background: white; border: 1px solid #e0e6ec; border-radius: 8px; padding: 16px; }
+      .metric-card { display: grid; gap: 6px; }
+      .metric-card span, .metric-card small { color: #66717c; }
+      .metric-card strong { color: #12212f; font-size: 28px; line-height: 1.15; }
+      .dashboard-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+      .chart-card h2 { font-size: 17px; margin: 0 0 14px; }
+      .bar-row { align-items: center; display: grid; gap: 10px; grid-template-columns: minmax(120px, 170px) 1fr 36px; margin: 9px 0; }
+      .bar-row span, .bar-row strong { font-size: 13px; }
+      .bar-track { background: #eef2f5; height: 10px; overflow: hidden; }
+      .bar-fill { background: #1f7a8c; height: 100%; min-width: 2px; }
     </style>
   </head>
   <body>
     <header>
       <strong>Quant Job Tracker</strong>
       <nav style="display:inline-flex; gap:14px; margin-left:24px;">
+        <a style="color:white;" href="/dashboard">Summary</a>
         <a style="color:white;" href="/">Jobs</a>
         <a style="color:white;" href="/runs">Run History</a>
       </nav>

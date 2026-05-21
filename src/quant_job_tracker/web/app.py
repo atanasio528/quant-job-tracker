@@ -12,23 +12,29 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc
 
 from quant_job_tracker.config import DEFAULT_DB_PATH
+from quant_job_tracker.crawler.categories import CANONICAL_CATEGORIES, GROUP_TO_CATEGORY
 from quant_job_tracker.db import create_session, init_db
 from quant_job_tracker.models import App, Eval, Job, Review, Run
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 ALLOWED_REVIEW_DECISIONS = {"approved", "pending", "rejected", "needs_review"}
-ALLOWED_APP_STATUSES = {
+APP_STATUS_OPTIONS = (
     "not_started",
     "ready",
     "applied",
     "interview",
-    "rejected",
     "offer",
+    "rejected",
     "closed",
-}
-LABEL_FILTERS = {"all", "green", "yellow", "red", "missing"}
-STATUS_FILTERS = {"all", "new", "live", "closed"}
+)
+ALLOWED_APP_STATUSES = set(APP_STATUS_OPTIONS)
+LABEL_FILTER_OPTIONS = ("green", "yellow", "red", "missing")
+STATUS_FILTER_OPTIONS = ("new", "live", "closed")
+LABEL_FILTERS = set(LABEL_FILTER_OPTIONS)
+STATUS_FILTERS = set(STATUS_FILTER_OPTIONS)
+INDUSTRY_ALL = "All"
+INDUSTRY_OPTIONS = (INDUSTRY_ALL, *CANONICAL_CATEGORIES)
 PAGE_SIZE = 50
 JD_SECTION_HEADINGS = (
     "Preferred Qualifications",
@@ -61,25 +67,26 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
     @app.get("/", response_class=HTMLResponse)
     def jobs(
         request: Request,
-        front: str = "all",
-        h1b: str = "all",
-        exp: str = "all",
-        status: str = "all",
         page: int = 1,
     ):
         filters = {
-            "front": _normalize_filter(front, LABEL_FILTERS),
-            "h1b": _normalize_filter(h1b, LABEL_FILTERS),
-            "exp": _normalize_filter(exp, LABEL_FILTERS),
-            "status": _normalize_filter(status, STATUS_FILTERS),
+            "front": _parse_multi_filter(request, "front", LABEL_FILTERS),
+            "h1b": _parse_multi_filter(request, "h1b", LABEL_FILTERS),
+            "exp": _parse_multi_filter(request, "exp", LABEL_FILTERS),
+            "status": _parse_multi_filter(request, "status", STATUS_FILTERS),
+            "app_status": _parse_multi_filter(request, "app_status", set(APP_STATUS_OPTIONS)),
         }
+        industry = _parse_industry_filter(request)
         page = max(page, 1)
         with create_session(db_path) as session:
             rows = []
             query = session.query(Job).order_by(desc(Job.last_seen))
-            if filters["status"] != "all":
-                query = query.filter_by(status=filters["status"])
+            if filters["status"]:
+                query = query.filter(Job.status.in_(filters["status"]))
             for job in query.all():
+                category = industry_for_group(job.company_ref.group if job.company_ref else "")
+                if industry != INDUSTRY_ALL and category != industry:
+                    continue
                 latest = _preferred_eval(session, job.id)
                 if not _matches_eval_filter(latest, "front", filters["front"]):
                     continue
@@ -88,11 +95,16 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
                 if not _matches_eval_filter(latest, "exp", filters["exp"]):
                     continue
                 application = session.query(App).filter_by(job_id=job.id).one_or_none()
+                app_status = application.app_status if application else "not_started"
+                if filters["app_status"] and app_status not in filters["app_status"]:
+                    continue
                 rows.append(
                     {
                         "job": job,
                         "eval": latest,
                         "application": application,
+                        "app_status": app_status,
+                        "industry": category,
                         "official_url": safe_external_url(job.url),
                     }
                 )
@@ -101,16 +113,19 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
         page = min(page, total_pages)
         start = (page - 1) * PAGE_SIZE
         page_rows = rows[start : start + PAGE_SIZE]
-        prev_query = _page_query(filters, page - 1) if page > 1 else None
-        next_query = _page_query(filters, page + 1) if page < total_pages else None
+        prev_query = _page_query(filters, industry, page - 1) if page > 1 else None
+        next_query = _page_query(filters, industry, page + 1) if page < total_pages else None
+        controls = filter_controls(filters, industry)
         return templates.TemplateResponse(
             request,
             "jobs.html",
             {
                 "rows": page_rows,
                 "filters": filters,
-                "label_options": ["all", "green", "yellow", "red", "missing"],
-                "status_options": ["all", "new", "live", "closed"],
+                "filter_controls": controls,
+                "filter_control_by_name": {control["name"]: control for control in controls},
+                "industry": industry,
+                "industry_tabs": industry_tabs(filters, industry),
                 "page": page,
                 "total_pages": total_pages,
                 "total_rows": total_rows,
@@ -119,6 +134,49 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
                 "next_query": next_query,
             },
         )
+
+    @app.get("/dashboard", response_class=HTMLResponse)
+    def dashboard(request: Request):
+        with create_session(db_path) as session:
+            jobs = session.query(Job).all()
+            applications = session.query(App).all()
+            latest_run = session.query(Run).order_by(desc(Run.created_at)).first()
+            open_jobs = [job for job in jobs if job.status in {"new", "live"}]
+            open_by_industry = {industry: 0 for industry in CANONICAL_CATEGORIES}
+            status_counts = {status: 0 for status in STATUS_FILTER_OPTIONS}
+            app_counts = {status: 0 for status in APP_STATUS_OPTIONS}
+            front_counts = {label: 0 for label in LABEL_FILTER_OPTIONS}
+            for job in jobs:
+                if job.status in status_counts:
+                    status_counts[job.status] += 1
+                if job.status in {"new", "live"}:
+                    industry = industry_for_group(job.company_ref.group if job.company_ref else "")
+                    if industry in open_by_industry:
+                        open_by_industry[industry] += 1
+                    latest = _preferred_eval(session, job.id)
+                    if latest and latest.front in front_counts:
+                        front_counts[latest.front] += 1
+                    elif not latest:
+                        front_counts["missing"] += 1
+            for application in applications:
+                if application.app_status in app_counts:
+                    app_counts[application.app_status] += 1
+            return templates.TemplateResponse(
+                request,
+                "dashboard.html",
+                {
+                    "open_positions": len(open_jobs),
+                    "applications": len(applications),
+                    "latest_run": latest_run,
+                    "status_counts": status_counts,
+                    "industry_counts": open_by_industry,
+                    "app_counts": app_counts,
+                    "front_counts": front_counts,
+                    "max_industry_count": max(open_by_industry.values(), default=1) or 1,
+                    "max_app_count": max(app_counts.values(), default=1) or 1,
+                    "max_front_count": max(front_counts.values(), default=1) or 1,
+                },
+            )
 
     @app.get("/jobs/{job_id}", response_class=HTMLResponse)
     def job_detail(request: Request, job_id: int):
@@ -144,7 +202,7 @@ def create_app(db_path: Path = DEFAULT_DB_PATH) -> FastAPI:
                     "job": job,
                     "evals": evals,
                     "application": application,
-                    "app_statuses": sorted(ALLOWED_APP_STATUSES),
+                    "app_statuses": APP_STATUS_OPTIONS,
                     "reviews": reviews,
                     "review_decisions": sorted(ALLOWED_REVIEW_DECISIONS),
                     "official_url": safe_external_url(job.url),
@@ -212,21 +270,94 @@ def _preferred_eval(session, job_id: int) -> Eval | None:
     return codex_eval or (evals[0] if evals else None)
 
 
-def _normalize_filter(value: str, allowed: set[str]) -> str:
-    value = value.lower().strip()
-    return value if value in allowed else "all"
+def _parse_multi_filter(request: Request, name: str, allowed: set[str]) -> set[str]:
+    selected = set()
+    for value in request.query_params.getlist(name):
+        value = value.lower().strip()
+        if value in allowed:
+            selected.add(value)
+    return selected
 
 
-def _matches_eval_filter(eval: Eval | None, field: str, selected: str) -> bool:
-    if selected == "all":
+def _parse_industry_filter(request: Request) -> str:
+    industry = request.query_params.get("industry", INDUSTRY_ALL).strip()
+    return industry if industry in CANONICAL_CATEGORIES else INDUSTRY_ALL
+
+
+def _matches_eval_filter(eval: Eval | None, field: str, selected: set[str]) -> bool:
+    if not selected:
         return True
     if eval is None:
-        return selected == "missing"
-    return getattr(eval, field) == selected
+        return "missing" in selected
+    return getattr(eval, field) in selected
 
 
-def _page_query(filters: dict[str, str], page: int) -> str:
-    return urlencode({**filters, "page": page})
+def _page_query(filters: dict[str, set[str]], industry: str, page: int) -> str:
+    return _query_string(filters, industry=industry, page=page)
+
+
+def _query_string(
+    filters: dict[str, set[str]],
+    industry: str = INDUSTRY_ALL,
+    page: int | None = None,
+) -> str:
+    params: list[tuple[str, str]] = []
+    for name, values in filters.items():
+        params.extend((name, value) for value in sorted(values))
+    if industry != INDUSTRY_ALL:
+        params.append(("industry", industry))
+    if page is not None:
+        params.append(("page", str(page)))
+    return urlencode(params)
+
+
+def filter_controls(filters: dict[str, set[str]], industry: str) -> list[dict[str, object]]:
+    return [
+        _filter_control("front", "Front", LABEL_FILTER_OPTIONS, filters, industry),
+        _filter_control("h1b", "H-1B", LABEL_FILTER_OPTIONS, filters, industry),
+        _filter_control("exp", "Exp", LABEL_FILTER_OPTIONS, filters, industry),
+        _filter_control("status", "Status", STATUS_FILTER_OPTIONS, filters, industry),
+        _filter_control("app_status", "App", APP_STATUS_OPTIONS, filters, industry),
+    ]
+
+
+def _filter_control(
+    name: str,
+    label: str,
+    options: tuple[str, ...],
+    filters: dict[str, set[str]],
+    industry: str,
+) -> dict[str, object]:
+    selected = filters[name]
+    summary = ", ".join(sorted(selected)) if selected else "All"
+    clear_filters = {key: values for key, values in filters.items() if key != name}
+    clear_query = _query_string(clear_filters, industry=industry)
+    return {
+        "name": name,
+        "label": label,
+        "options": options,
+        "selected": selected,
+        "summary": summary,
+        "clear_href": f"/?{clear_query}" if clear_query else "/",
+    }
+
+
+def industry_tabs(filters: dict[str, set[str]], current: str) -> list[dict[str, object]]:
+    tabs = []
+    for industry in INDUSTRY_OPTIONS:
+        query = _query_string(filters, industry=industry)
+        tabs.append(
+            {
+                "label": industry,
+                "active": industry == current,
+                "href": f"/?{query}" if query else "/",
+            }
+        )
+    return tabs
+
+
+def industry_for_group(group: str) -> str:
+    return GROUP_TO_CATEGORY.get(group, "Hedge Funds")
 
 
 def format_jd_sections(jd: str | None) -> list[dict[str, object]]:
